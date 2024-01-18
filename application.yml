@@ -1,0 +1,18 @@
+spring:
+  jwt:
+    secretKey: 12345678910987654321ABCDEFFEDCBA01234567899876543210ABCDEFFEDCBA
+    tokenLifespan: 3600000   # 1 hour #
+    refreshTokenLifespan: 86400000    # 24 hours #
+  account:
+    admin:
+      username: admin
+      password: admin
+      email: admin@gmeil.com
+      firstname: admin
+      lastname: istrator
+  role_admin:
+    id: 1
+    name: ADMIN
+  role_user:
+    id: 2
+    name: USER
