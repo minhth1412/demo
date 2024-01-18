@@ -1,22 +1,21 @@
 package com.assessment.demo.config;
 
-import com.assessment.demo.entity.Role;
+import com.assessment.demo.service.UserService;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.assessment.demo.service.RoleService;
 
 @Configuration
-public class RoleConfig {
+public class DataConfig {
 
     @Autowired
     private RoleService roleService;
+
+    @Autowired
+    private UserService userService;
 
     @Value("${spring.role_admin.id}")
     private int role1_id;
@@ -34,8 +33,12 @@ public class RoleConfig {
     //  the dependencies have been injected. This ensures that the roles
     //  are created when the application starts.
     @PostConstruct
-    public void createRolesIfNotExists() {
+    public void createIfNotExists() {
+        // Create 2 roles default if not existed
         roleService.createRoleIfNotExists(role1_id, role1_name);
         roleService.createRoleIfNotExists(role2_id, role2_name);
+
+        // After that, create an admin account if not existed
+        userService.createAdminAccountIfNotExists(role1_id);
     }
 }

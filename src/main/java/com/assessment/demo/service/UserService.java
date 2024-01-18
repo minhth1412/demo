@@ -17,15 +17,15 @@ import java.util.Date;
 public class UserService {
 
     // Define needed variables
-    @Value("${spring.account.admin.username")
+    @Value("${spring.account.admin.username}")
     String username;
-    @Value("${spring.account.admin.password")
+    @Value("${spring.account.admin.password}")
     String password;
-    @Value("${spring.account.admin.email")
+    @Value("${spring.account.admin.email}")
     String email;
-    @Value("${spring.account.admin.firstname")
+    @Value("${spring.account.admin.firstname}")
     String firstname;
-    @Value("${spring.account.admin.lastname")
+    @Value("${spring.account.admin.lastname}")
     String lastname;
 
     private final UserRepository userRepository;

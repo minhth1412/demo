@@ -17,7 +17,7 @@ public class Friend extends BaseEntity {
     // Primary key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "friendID", columnDefinition = "BINARY(16)")
+    @Column(name = "friendId", columnDefinition = "BINARY(16)")
     private final UUID id;
 
     // Foreign keys
