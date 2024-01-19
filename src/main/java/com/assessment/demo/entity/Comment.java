@@ -2,6 +2,7 @@ package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.base.BaseEntity;
 import com.assessment.demo.entity.base.EntityWithInteracts;
+import io.micrometer.common.lang.Nullable;
 import lombok.Data;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
@@ -48,7 +49,7 @@ public class Comment extends BaseEntity implements EntityWithInteracts {     // 
     private Set<Interact> interacts = new HashSet<>();
 
     // Constructors
-    public Comment(Post post, Comment replyTo) {
+    public Comment(Post post, @Nullable Comment replyTo) {
         // Generate a new UUID for the user during object creation
         super();
         this.commentId = UUID.randomUUID();

@@ -3,6 +3,7 @@ package com.assessment.demo.entity;
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.base.BaseEntity;
 import com.assessment.demo.entity.base.EntityWithInteracts;
+import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -54,15 +55,15 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
 
     // Constructors
     // This is for common use
-    public Post(String content, String title, User author, Post mainPost) {
+    public Post(String content,@Nullable String title, User author, @Nullable Post mainPost) {
         // Generate these when calling new Post()
         super();
         this.postId = UUID.randomUUID();
         this.updateStatus(PostStatus.PUBLIC);
-        // Validate parameters
-        if (content == null || author == null) {
-            throw new IllegalArgumentException("Content or author must not be null!");
-        }
+//        // Validate parameters
+//        if (content == null || author == null) {
+//            throw new IllegalArgumentException("Content or author must not be null!");
+//        }
         this.content = content;
         this.title = title;
         this.author = author;

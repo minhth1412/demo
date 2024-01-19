@@ -11,9 +11,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 public interface UserService {
     // Define needed variables
     void createAdminAccountIfNotExists(int roleId);
     public UserDetailsService userDetailsService();
+
+
 }

@@ -5,11 +5,12 @@ import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
 import com.assessment.demo.dto.response.JwtResponse;
 import com.assessment.demo.entity.User;
+import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
-// import com.assessment.demo.utils.CookieUtils;
-import com.assessment.demo.util.CookieUtils;
+import com.assessment.demo.service.RoleService;
+import io.jsonwebtoken.Jwt;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -30,12 +31,17 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
+    private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final RoleService roleService;
 
     @Value("${spring.role_user.id}")
     private int roleUserId;
+
+    @Value("${spring.role_user.name}")
+    private String roleUserName;
 
     public JwtResponse signup(SignupRequest signupRequest) {
         try {
@@ -43,13 +49,12 @@ public class AuthServiceImpl implements AuthService {
 
             if (err != null)
                 throw new ValidationException(err);
-
             User user = new User(signupRequest.getUsername(),
                     passwordEncoder.encode(signupRequest.getPassword()),
                     signupRequest.getEmail(),
                     signupRequest.getFirstname(),
                     signupRequest.getLastname(),
-                    new Role(roleUserId));
+                    new Role(roleUserId, roleUserName), null, null, null);
             // A new user signing up auto receive USER role,
             // it can be edited later by whom has ADMIN role.
 
@@ -87,15 +92,16 @@ public class AuthServiceImpl implements AuthService {
     public JwtResponse login(LoginRequest loginRequest, HttpServletResponse response) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
         var user = userRepository.findUserByUsername(loginRequest.getUsername()).orElseThrow(() -> new RuntimeException("Invalid username or password"));
-        JwtResponse jwtUserResponse = JwtResponse.fromUser(user);
+        JwtResponse jwtResponse = JwtResponse.fromUser(user);
 
-        // Create 2 token
-        CookieUtils.addTokenCookie(response, jwtService, user);
-        CookieUtils.addRefreshTokenCookie(response, jwtService, user);
-        CookieUtils.addRefreshTokenCookie(response, jwtService, user);
-
+        var token = tokenRepository.findByUser(user).orElse(null);
+        if (token == null) {
+//        // Create 2 token
+//        addToken(response, jwtService, user);
+//        addRefreshToken(response, jwtService, user);
+        }
         log.debug("Login successfully!");
-        return jwtUserResponse;
+        return jwtResponse;
     }
 
     public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
@@ -114,15 +120,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findUserByUsername(username).orElseThrow();
         if (jwtService.isTokenValid(token,user)) {
             // Return a msg to user through response
-            JwtResponse messageResponse = JwtResponse.builder()
-                    //.msg("Token refreshes successfully!")
-                    .build();
             // Save both whole new tokens into cookies
-            CookieUtils.addTokenCookie(response,jwtService,user);
-            CookieUtils.addRefreshTokenCookie(response,jwtService,user);
+//            addToken(response,jwtService,user);
+//            addRefreshToken(response,jwtService,user);
 
-            log.debug("Token refreshes successfully!");
-            return messageResponse;
+//            log.debug("Token refreshes successfully!");
+            return JwtResponse.fromUser(user);
         }
         log.debug("if reaches here, it means that the token not refreshed\n");
         return null;

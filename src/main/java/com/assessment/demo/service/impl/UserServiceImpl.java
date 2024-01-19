@@ -40,8 +40,10 @@ public class UserServiceImpl implements UserService {
         if (adminRole == null) {
             throw new RuntimeException("Admin role with ID " + roleId + " not found.");
         }
-        userRepository.findUserByRole(adminRole)
-                .orElseGet(() -> new User(username, new BCryptPasswordEncoder().encode(password), email, firstname, lastname, adminRole));
+        var user = userRepository.findUserByRole(adminRole);
+        if (user.isEmpty())
+            userRepository.save(new User(username, new BCryptPasswordEncoder().encode(password),
+                    email, firstname, lastname, adminRole, null, null, null));
     }
 
     @Override

@@ -9,14 +9,13 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class JwtResponse {
     String firstname;
     String lastname;
     String username;
     String email;
-    Role role;
+    String role;
+    //String token;
 
     public static JwtResponse fromUser(User user) {
         return JwtResponse.builder()
@@ -24,7 +23,8 @@ public class JwtResponse {
                 .lastname(user.getLast_name())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .role(user.getRole())
+                .role(user.getRole().getRoleName())
+                //.token(user.getToken())
                 .build();
     }
 }

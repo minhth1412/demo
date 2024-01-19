@@ -18,7 +18,6 @@ import java.util.Map;
 @Slf4j
 public class RoleServiceImpl implements RoleService {
 
-    @Autowired
     private final RoleRepository roleRepository;
 
     public List<Role> getAllRoles() {

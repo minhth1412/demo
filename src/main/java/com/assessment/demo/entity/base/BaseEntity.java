@@ -9,11 +9,11 @@ import java.util.Date;
 @Getter
 public abstract class BaseEntity {
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "createdAt", nullable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private final Date createdAt ;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updatedAt", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
 

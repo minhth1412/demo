@@ -5,6 +5,7 @@ import com.assessment.demo.service.RoleService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import jakarta.persistence.*;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +13,7 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Entity
+@Slf4j
 @Table(name = "Role")
 public class Role extends BaseEntity {
 
@@ -55,7 +57,12 @@ public class Role extends BaseEntity {
 
     private String detectRole(int roleId) {
         // This map should be non-null due to postConstructor in RoleConfig
-        String roleName = ROLE_MAP.get(roleId);
+        try {
+            String roleName = ROLE_MAP.get(roleId);
+        }
+        catch (Exception e){
+            log.error("Please update the ROLE_MAP by call Role(roleService)");
+        }
 
         if (roleName != null) {
             return roleName;

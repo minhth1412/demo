@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class SignupRequest {
 
     @NotBlank(message = "First name cannot be blank")

@@ -1,7 +1,9 @@
 package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.base.BaseEntity;
+import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Null;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,6 +30,10 @@ public class User extends BaseEntity implements UserDetails {              // In
     @JoinColumn(name = "roleId")
     private Role role;
 
+    // If 1 user is removed, the token of that user will be deleted too
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tokenId", unique = true)
+    private Token token;
 
     // The rest fields
     // 1. Required non-null field
@@ -62,31 +68,33 @@ public class User extends BaseEntity implements UserDetails {              // In
     @Column(name = "Date_of_birth", columnDefinition = "DATE")
     private LocalDate dateOfBirth;
 
+    // More information
+    // gender, place, works, hobbies,......
+
     // Constructors
     public User() {
         // Generate a new UUID for the user during object creation
-        super();    // call created_at and updated_at initialization in the super class
+        super();    // call created_at and updatedAt initialization in the super class
         this.userId = UUID.randomUUID();
     }
 
     // Should create a new User with follow details in 1 line, not separate to maximize the performance
-    public User(String username, String password, String email, String first_name, String last_name, Role role) {
+    public User(String username,String password,String email,String first_name,String last_name,Role role,
+                @Nullable String bio,@Nullable String image, @Nullable LocalDate dateOfBirth) {
         // Create user with important details
         this();
         this.username = username;
         this.email = email;
         this.password = password;
+        this.role = role;
+        this.isDeleted = false;
+        this.status = true;
+        // Below is user profile parts
         this.first_name = first_name;
         this.last_name = last_name;
-        this.role = role;
-    }
-
-    // Constructor for update the nullable fields
-    public User(String bio, String image, LocalDate dateOfBirth) {
         this.bio = bio;
         this.image = image;
         this.dateOfBirth = dateOfBirth;
-        this.updateDate();
     }
 
     @Override
@@ -103,7 +111,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     // If Admin lock this account, the status will be set equals to false
     @Override
     public boolean isAccountNonLocked(){
-        return !this.status;
+        return this.status;
     }
 
     // Credential will expire when the token is expired, and user need to log in again
