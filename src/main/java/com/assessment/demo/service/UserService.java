@@ -6,6 +6,7 @@ import com.assessment.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,4 @@ public interface UserService {
     // Define needed variables
     void createAdminAccountIfNotExists(int roleId);
     public UserDetailsService userDetailsService();
-
-
 }

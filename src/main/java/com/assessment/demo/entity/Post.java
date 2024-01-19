@@ -25,7 +25,6 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
     // This is equals to primary key userId in User table
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "userId", referencedColumnName = "userId")
-    //@Column(name = "author", nullable = false)
     private User author;
 
     // nullable fields

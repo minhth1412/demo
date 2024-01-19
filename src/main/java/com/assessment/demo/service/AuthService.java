@@ -11,7 +11,7 @@ public interface AuthService {
 
     public JwtResponse login(LoginRequest loginRequest, HttpServletResponse response);
 
-    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest httpServletRequest, HttpServletResponse response);
+//    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest httpServletRequest, HttpServletResponse response);
 
 //    Object logout(HttpServletResponse response);
 }

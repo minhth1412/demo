@@ -91,44 +91,44 @@ public class AuthServiceImpl implements AuthService {
 
     public JwtResponse login(LoginRequest loginRequest, HttpServletResponse response) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-        var user = userRepository.findUserByUsername(loginRequest.getUsername()).orElseThrow(() -> new RuntimeException("Invalid username or password"));
+        var user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow(() -> new RuntimeException("Invalid username or password"));
         JwtResponse jwtResponse = JwtResponse.fromUser(user);
 
-        var token = tokenRepository.findByUser(user).orElse(null);
-        if (token == null) {
+//        var token = tokenRepository.findByUser(user).orElse(null);
+//        if (token == null) {
 //        // Create 2 token
 //        addToken(response, jwtService, user);
 //        addRefreshToken(response, jwtService, user);
-        }
+//        }
         log.debug("Login successfully!");
         return jwtResponse;
     }
 
-    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-        String authorizationHeader = request.getHeader("Authorization");
-        String token;
-        if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
-            token = authorizationHeader.substring(7).trim();
-        } else {
-            log.debug("The token is not valid!\n");
-            throw new RuntimeException("The token is not exist!\n");
-        }
-
-        // extract username from the claim subject of the refresh token
-        String username = jwtService.extractUsername(token);
-        User user = userRepository.findUserByUsername(username).orElseThrow();
-        if (jwtService.isTokenValid(token,user)) {
-            // Return a msg to user through response
-            // Save both whole new tokens into cookies
-//            addToken(response,jwtService,user);
-//            addRefreshToken(response,jwtService,user);
-
-//            log.debug("Token refreshes successfully!");
-            return JwtResponse.fromUser(user);
-        }
-        log.debug("if reaches here, it means that the token not refreshed\n");
-        return null;
-    }
+//    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
+//        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+//        String authorizationHeader = request.getHeader("Authorization");
+//        String token;
+//        if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
+//            token = authorizationHeader.substring(7).trim();
+//        } else {
+//            log.debug("The token is not valid!\n");
+//            throw new RuntimeException("The token is not exist!\n");
+//        }
+//
+//        // extract username from the claim subject of the refresh token
+//        String username = jwtService.extractUsername(token);
+//        User user = userRepository.findByUsername(username).orElseThrow();
+//        if (jwtService.isTokenValid(token,user)) {
+//            // Return a msg to user through response
+//            // Save both whole new tokens into cookies
+////            addToken(response,jwtService,user);
+////            addRefreshToken(response,jwtService,user);
+//
+////            log.debug("Token refreshes successfully!");
+//            return JwtResponse.fromUser(user);
+//        }
+//        log.debug("if reaches here, it means that the token not refreshed\n");
+//        return null;
+//    }
 }
 

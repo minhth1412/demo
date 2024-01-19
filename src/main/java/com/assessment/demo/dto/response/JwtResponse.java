@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @Builder
 public class JwtResponse {
@@ -15,6 +17,10 @@ public class JwtResponse {
     String username;
     String email;
     String role;
+
+    //------ testing
+    UUID userId;
+    // -------------
     //String token;
 
     public static JwtResponse fromUser(User user) {
@@ -24,6 +30,7 @@ public class JwtResponse {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole().getRoleName())
+                .userId(user.getUserId())
                 //.token(user.getToken())
                 .build();
     }
