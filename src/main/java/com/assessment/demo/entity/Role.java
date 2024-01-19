@@ -5,7 +5,6 @@ import com.assessment.demo.service.RoleService;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import jakarta.persistence.*;
-import lombok.NoArgsConstructor;
 
 import java.util.Map;
 import java.util.Set;

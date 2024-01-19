@@ -12,37 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
-public class RoleService {
+public interface RoleService {
+    public List<Role> getAllRoles();
 
-    @Autowired
-    private final RoleRepository roleRepository;
+    public Map<Integer, String> getRoleMap();
 
-    public List<Role> getAllRoles() {
-        return roleRepository.findAll();
-    }
+    public void createRoleIfNotExists(int roleId, String roleName);
 
-    public Map<Integer, String> getRoleMap() {
-        List<Role> roles = getAllRoles();
-
-        Map<Integer, String> roleMap = new HashMap<>();
-        for (Role role : roles) {
-            roleMap.put(role.getRoleId(), role.getRoleName());
-        }
-        return roleMap;
-    }
-
-    public void createRoleIfNotExists(int roleId, String roleName) {
-        if (!roleRepository.existsById(roleId)) {
-            Role role = new Role(roleId, roleName);
-            roleRepository.save(role);
-        }
-    }
-
-    public Role getRoleById(int roleId) {
-        return roleRepository.findById(roleId)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found with ID: " + roleId));
-    }
+    public Role getRoleById(int roleId);
 }

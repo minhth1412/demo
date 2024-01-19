@@ -70,7 +70,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     }
 
     // Should create a new User with follow details in 1 line, not separate to maximize the performance
-    public User(String username, String password, String email, String first_name, String last_name, Date date, Role role) {
+    public User(String username, String password, String email, String first_name, String last_name, Role role) {
         // Create user with important details
         this();
         this.username = username;

@@ -39,7 +39,8 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
     @Enumerated(EnumType.STRING)
     private PostStatus status;
 
-    @Column(name = "repostFrom")
+    @ManyToOne
+    @JoinColumn(name = "repostFrom")
     private Post repostFrom;
 
     // Handle foreign keys

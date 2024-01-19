@@ -1,21 +1,18 @@
 package com.assessment.demo.config;
 
+import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.assessment.demo.service.RoleService;
 
 @Configuration
+@RequiredArgsConstructor
 public class DataConfig {
 
-    @Autowired
-    private RoleService roleService;
-
-    @Autowired
-    private UserService userService;
+    private final RoleService roleService;
+    private final UserService userService;
 
     @Value("${spring.role_admin.id}")
     private int role1_id;

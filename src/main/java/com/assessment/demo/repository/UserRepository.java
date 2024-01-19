@@ -12,15 +12,15 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
-//    @Query("SELECT u FROM User u WHERE u.username = :username")
-//    Optional<User> findUserByUsername(String username);
-//
-//    Boolean existsByUsername(String username);
-//
-//    Boolean existsByEmail(String email);
+    @Query("SELECT u FROM User u WHERE u.username = :username")
+    Optional<User> findUserByUsername(String username);
+
+    Boolean existsByUsername(String username);
+
+    Boolean existsByEmail(String email);
 
     @Query("SELECT u FROM User u WHERE u.role = :role")
-    Optional<User> findByRole(Role role);
+    Optional<User> findUserByRole(Role role);
 
 //    @Query("SELECT u FROM User u WHERE u.email = :email")
 //    Optional<User> findUserByEmail(String email);
