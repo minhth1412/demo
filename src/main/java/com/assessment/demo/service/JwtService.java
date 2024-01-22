@@ -1,5 +1,9 @@
 package com.assessment.demo.service;
 
+import com.assessment.demo.entity.Token;
+import com.assessment.demo.entity.User;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Date;
@@ -7,7 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface JwtService {
-    public String generateToken(UserDetails userDetails);
+    public String generateToken(UserDetails userDetails, boolean isRefresh);
 
     String createToken(Map<String, Object> Claims,UserDetails userDetails, boolean isRefresh);
 
@@ -15,7 +19,9 @@ public interface JwtService {
     public Date extractExpiration(String token);
     public boolean isTokenValid(String token, UserDetails userDetails);
 
-    public void saveCompressedToken(String tokenData, String refreshTokenData);
+    public void refreshToken(User user);
 
-    public String getDecompressedToken(UUID tokenId);
+//    public void saveCompressedToken(String tokenData, String refreshTokenData);
+//
+//    public String getDecompressedToken(UUID tokenId);
 }

@@ -1,6 +1,7 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.entity.Token;
+import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.service.JwtService;
 import io.jsonwebtoken.Claims;
@@ -40,9 +41,9 @@ public class JwtServiceImpl implements JwtService {
     @Autowired
     private TokenRepository tokenRepository;
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, boolean isRefresh) {
         Map<String, Object> Claims = new HashMap<>();
-        return createToken(Claims, userDetails, false);
+        return createToken(Claims, userDetails, isRefresh);
     }
 
     @Override
@@ -105,65 +106,17 @@ public class JwtServiceImpl implements JwtService {
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
+    @Override
+    public void refreshToken(User user) {
+        String token = generateToken(user, false);
+        String refreshToken = generateToken(user, true);
+        Token newToken = new Token(token, refreshToken);
+        tokenRepository.deleteToken(token);
+        tokenRepository.save(newToken);
+    }
+
     // Check if the token is expired by comparing the expiration time with the current time
     private boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());
-    }
-
-    public void saveCompressedToken(String tokenData, String refreshTokenData) {
-        try {
-            // Save the compressed Token into the database
-            Token tokenEntity = new Token(compressData(tokenData), compressData(refreshTokenData));
-            // Convert Instant to LocalDateTime for better readability (optional)
-
-            Date currentDate = new Date(tokenLifespan);
-            Date expirationDate = new Date(currentDate.getTime() + refreshTokenLifespan);
-
-            tokenEntity.setTokenExpireAt(currentDate);
-            tokenEntity.setRefreshTokenExpireAt(expirationDate);
-            tokenRepository.save(tokenEntity);
-
-        } catch (IOException e) {
-            // Handle decompression exception
-            log.error("An error occurred:", e);
-        }
-    }
-
-    public String getDecompressedToken(UUID tokenId) {
-        // Retrieve the token entity from the database
-        Token tokenEntity = tokenRepository.findById(tokenId).orElse(null);
-        if (tokenEntity != null) {
-            // Decompress the token and refresh token data using GZIP
-            String tokenData = decompressData(tokenEntity.getCompressedTokenData());
-            String refreshTokenData = decompressData(tokenEntity.getCompressedRefreshTokenData());
-            return tokenData + " " + refreshTokenData;
-        }
-        return null;
-    }
-
-    private byte[] compressData(String data) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
-            gzipOutputStream.write(data.getBytes());
-        }
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    private String decompressData(byte[] compressedData) {
-        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);
-             GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream)) {
-
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = gzipInputStream.read(buffer)) > 0) {
-                byteArrayOutputStream.write(buffer, 0, len);
-            }
-            return byteArrayOutputStream.toString();
-        } catch (IOException e) {
-            // Handle decompression exception
-            log.error("An error occurred:", e);
-        }
-        return null;
     }
 }

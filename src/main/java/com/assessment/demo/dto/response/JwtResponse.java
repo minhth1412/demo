@@ -20,8 +20,9 @@ public class JwtResponse {
 
     //------ testing
     UUID userId;
-    // -------------
-    //String token;
+    String token;
+    String refreshToken;
+    String msg;
 
     public static JwtResponse fromUser(User user) {
         return JwtResponse.builder()
@@ -31,7 +32,13 @@ public class JwtResponse {
                 .email(user.getEmail())
                 .role(user.getRole().getRoleName())
                 .userId(user.getUserId())
-                //.token(user.getToken())
+                .token(user.getToken().getCompressedTokenData())
+                .refreshToken(user.getToken().getCompressedRefreshTokenData())
+                .msg(null)
                 .build();
+    }
+
+    public static JwtResponse msg(String msg) {
+        return JwtResponse.builder().msg(msg).build();
     }
 }

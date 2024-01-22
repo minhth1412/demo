@@ -31,32 +31,26 @@ public class AuthController {
     @PostMapping("signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
         JwtResponse response = authService.signup(signupRequest);
+        if (response.getMsg() != null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
+        }
         if (!isEmail(signupRequest.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is invalid");
         }
-        return (response == null) ?
-                ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error during sign up")
-                : ResponseEntity.ok(response);
-
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("login")
     public ResponseEntity<?> login(
-            @RequestBody LoginRequest loginRequest,
-            HttpServletResponse response,
-            BindingResult bindingResult)
+            @RequestBody LoginRequest loginRequest)
     {
-        // Check for validation errors
-        if (bindingResult.hasErrors()) {
-            // There are validation errors, handle them
-            List<ObjectError> errors = bindingResult.getAllErrors();
-            StringBuilder errorMessage = new StringBuilder("Validation error(s): ");
-            for (ObjectError error : errors) {
-                errorMessage.append(error.getDefaultMessage()).append("; ");
-            }
-            return ResponseEntity.badRequest().body(errorMessage.toString());
+        // If no errors, return 200 with login method from authService
+        JwtResponse response = authService.login(loginRequest);
+        if (response.getMsg() != null){
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
         }
-        return ResponseEntity.ok(authService.login(loginRequest, response));
+        return ResponseEntity.ok(response);
+
     }
 
     // API that refresh the present token

@@ -38,7 +38,7 @@ public class UserController {
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path is not existed!");
         List<Post> posts = postService.getAllPostsForCurrentUser(username);
-        return new ResponseEntity<>(posts,HttpStatus.OK);
+        return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
     @GetMapping("search")

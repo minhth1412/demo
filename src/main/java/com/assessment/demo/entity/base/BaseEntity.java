@@ -1,12 +1,12 @@
 package com.assessment.demo.entity.base;
 
 import jakarta.persistence.*;
-import lombok.Getter;
+import lombok.Data;
 
 import java.util.Date;
 
 @MappedSuperclass
-@Getter
+@Data
 public abstract class BaseEntity {
 
     @Column(name = "createdAt", nullable = false, updatable = false)
@@ -15,7 +15,7 @@ public abstract class BaseEntity {
 
     @Column(name = "updatedAt", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    private Date updatedAt;
+    Date updatedAt;
 
     public BaseEntity(){
 //        id = UUID.randomUUID();

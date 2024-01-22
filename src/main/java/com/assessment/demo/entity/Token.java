@@ -18,11 +18,15 @@ public class Token extends BaseEntity {
     @Column(name = "tokenId", columnDefinition = "BINARY(16)")
     private UUID tokenId;
 
+    // ----------------------------------------------
+    // AFTER SUCCESSFULLY SET UP THE PLAIN TOKEN,
+    //  CHANGE INTO COMPRESS ONE OR SOMETHING ELSE
+    // ----------------------------------------------
     @Column(name = "token")
-    private byte[] CompressedTokenData;
+    private String CompressedTokenData;
 
     @Column(name = "refreshToken")
-    private byte[] CompressedRefreshTokenData;
+    private String CompressedRefreshTokenData;
 
     @Column(name = "tokenExpireAt", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -35,10 +39,22 @@ public class Token extends BaseEntity {
     @OneToOne(mappedBy = "token", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private User user;
 
-    public Token(byte[] CompressedTokenData, byte[] CompressedRefreshTokenData){
+    public Token() {
+        this.updateTimeExpired();
+    }
+
+    public Token(String CompressedTokenData, String CompressedRefreshTokenData){
         super();
+        this.updateTimeExpired();
         this.tokenId = UUID.randomUUID();
         this.CompressedTokenData = CompressedTokenData;
         this.CompressedRefreshTokenData = CompressedRefreshTokenData;
+    }
+
+    // Method to update new expiration time of current tokens
+    public void updateTimeExpired() {
+        this.setUpdatedAt(new Date());
+        this.tokenExpireAt = this.getUpdatedAt();
+        this.refreshTokenExpireAt = this.getUpdatedAt();
     }
 }
