@@ -1,24 +1,18 @@
 package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.UserDto;
-import com.assessment.demo.dto.response.JwtResponse;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.PostService;
 import com.assessment.demo.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 

@@ -38,6 +38,18 @@ public class JwtResponse {
                 .build();
     }
 
+    public static JwtResponse fromUser(User user, boolean isToken) {
+        return JwtResponse.builder()
+                .firstname(user.getFirst_name())
+                .lastname(user.getLast_name())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole().getRoleName())
+                .userId(user.getUserId())
+                .msg(null)
+                .build();
+    }
+
     public static JwtResponse msg(String msg) {
         return JwtResponse.builder().msg(msg).build();
     }

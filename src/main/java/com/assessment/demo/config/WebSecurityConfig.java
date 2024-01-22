@@ -38,27 +38,6 @@ public class WebSecurityConfig {
     @Autowired
     private JwtService jwtService;
 
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        // Configuring HTTP security settings
-//        http.csrf(AbstractHttpConfigurer::disable)
-//                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/**").permitAll()
-//                        .requestMatchers("/user/**").hasAuthority("USER")
-//                        .anyRequest().authenticated())
-//                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .authenticationProvider(authenticationProvider())
-//                .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);
-//        // Below line need full authentication to access the route /logout
-//        //logout().logoutSuccessHandler(new ForwardLogoutSuccessHandler("login?logout"));
-//
-//        // below code can't run
-//        // HeaderWriterLogoutHandler clearSiteData = new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter());
-//        // http.logout((logout) -> logout.addLogoutHandler(clearSiteData));
-//
-//        return http.build();
-//    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
@@ -67,14 +46,14 @@ public class WebSecurityConfig {
                                 .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
                                 .requestMatchers("/user/**").hasAnyAuthority("USER")
                                 .anyRequest().authenticated())
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class)
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .permitAll()
-                );
+                )
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

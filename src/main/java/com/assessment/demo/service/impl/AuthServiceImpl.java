@@ -71,7 +71,7 @@ public class AuthServiceImpl implements AuthService {
             log.info("Your account is created successfully! Return to the login page...");
             userRepository.save(user);
 
-            return JwtResponse.fromUser(user);
+            return JwtResponse.fromUser(user, false);
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
             return JwtResponse.msg(e.getMessage());
@@ -89,12 +89,18 @@ public class AuthServiceImpl implements AuthService {
             return "Password and repassword do not match";
         }
         if (signupRequest.getPassword().length() < 4) {
-            return "Password must be at least 4 characters long";
+            return "Password must be at least 5 characters long";
         }
         if (userRepository.existsByUsername(signupRequest.getUsername()))
             return "Username existed";
         if (userRepository.existsByEmail(signupRequest.getEmail()))
             return "Email already existed";
+        // Regex for password requirements
+        String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$";
+
+        if (!signupRequest.getPassword().matches(passwordRegex)) {
+            return "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
+        }
         return null;
     }
 
@@ -104,9 +110,7 @@ public class AuthServiceImpl implements AuthService {
 
             String reqUsername = loginRequest.getUsername();
             String reqPassword = loginRequest.getPassword();
-            if (reqPassword == null || reqUsername == null) {
-                return JwtResponse.fromUser(null);
-            }
+
             var user = userRepository.findByUsername(reqUsername)
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
             // Create userAuthToken
@@ -133,6 +137,7 @@ public class AuthServiceImpl implements AuthService {
                     userToken.updateTimeExpired();
                 }
             }
+            user.setStatus(true);
             log.debug("Login successfully!");
             // return a response with public information of current user
             return JwtResponse.fromUser(user);
@@ -164,6 +169,32 @@ public class AuthServiceImpl implements AuthService {
         }
         log.debug("if reaches here, it means that the token not refreshed\n");
         return null;
+    }
+
+    @Override
+    public JwtResponse logout(HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+
+        // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
+        // If not, it continues with the filter chain without attempting JWT authentication.
+        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
+            String s = "The token is not the Bearer token format! Try again.\n";
+            log.error(s);
+            return JwtResponse.msg(s);
+        }
+        final String jwt = authHeader.substring(7);         // We get the token on the header of request after this
+        final String username = jwtService.extractUsername(jwt);
+        log.debug("The token in request is: " + jwt);
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null){
+            return JwtResponse.msg("Invalid token");
+        }
+        if (!user.getStatus()) {
+            return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
+        }
+        // set the security-related information for the current thread into null value.
+        SecurityContextHolder.getContext().setAuthentication(null);
+        return JwtResponse.msg(null);
     }
 }
 

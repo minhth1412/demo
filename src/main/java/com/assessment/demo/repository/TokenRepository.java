@@ -18,7 +18,7 @@ public interface TokenRepository extends JpaRepository<Token, UUID> {
     @Query("SELECT u FROM User u JOIN Token t ON u.id = t.user.id WHERE t.id = :tokenId")
     List<User> findUsersByTokenId(@Param("tokenId") UUID tokenId);
 
-    @Modifying
-    @Query("DELETE FROM Token t WHERE t.CompressedTokenData = :CompressedTokenData")
-    void deleteToken(String CompressedTokenData);
+    //@Modifying
+//    @Query("DELETE t FROM Token t WHERE t.token = :token")
+//    void deleteToken(@Param("token") String token);
 }

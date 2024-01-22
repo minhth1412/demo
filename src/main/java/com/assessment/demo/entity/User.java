@@ -32,7 +32,7 @@ public class User extends BaseEntity implements UserDetails {              // In
 
     // If 1 user is removed, the token of that user will be deleted too
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tokenId", unique = true)
+    @JoinColumn(name = "tokenId")
     private Token token;
 
     // The rest fields
@@ -52,6 +52,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
+    // Status online or offline
     @Column(name = "status", nullable = false)
     private Boolean status;
 
@@ -87,14 +88,19 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.email = email;
         this.password = password;
         this.role = role;
+        this.token = null;
         this.isDeleted = false;
-        this.status = true;
+        this.status = false;
         // Below is user profile parts
         this.first_name = first_name;
         this.last_name = last_name;
         this.bio = bio;
         this.image = image;
         this.dateOfBirth = dateOfBirth;
+    }
+
+    public void updateToken(Token token) {
+        this.token = token;
     }
 
     @Override
@@ -110,9 +116,7 @@ public class User extends BaseEntity implements UserDetails {              // In
 
     // If Admin lock this account, the status will be set equals to false
     @Override
-    public boolean isAccountNonLocked(){
-        return this.status;
-    }
+    public boolean isAccountNonLocked(){return true;}
 
     // Credential will expire when the token is expired, and user need to log in again
     // DEVELOP LATER

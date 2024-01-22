@@ -18,13 +18,10 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.UUID;
+import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import java.security.Key;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.zip.GZIPOutputStream;
 
@@ -110,9 +107,14 @@ public class JwtServiceImpl implements JwtService {
     public void refreshToken(User user) {
         String token = generateToken(user, false);
         String refreshToken = generateToken(user, true);
+        Token oldToken = tokenRepository.findByTokenId(user.getToken().getTokenId()).orElse(null);
         Token newToken = new Token(token, refreshToken);
-        tokenRepository.deleteToken(token);
+        if (oldToken != null){
+            user.setToken(null);
+            tokenRepository.delete(oldToken);
+        }
         tokenRepository.save(newToken);
+        user.setToken(newToken);
     }
 
     // Check if the token is expired by comparing the expiration time with the current time
