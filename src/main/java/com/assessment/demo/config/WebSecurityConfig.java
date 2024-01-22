@@ -50,7 +50,9 @@ public class WebSecurityConfig {
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .permitAll()
                 )
+                // If there is any exception that is not being handled yet, it comes here
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                // Using STATELESS = No Session save, each request will be treated independently
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);

@@ -1,5 +1,7 @@
 package com.assessment.demo.service.impl;
 
+import com.assessment.demo.dto.request.UpdateUserInfoRequest;
+import com.assessment.demo.dto.response.JwtResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
@@ -51,5 +53,15 @@ public class UserServiceImpl implements UserService {
     public UserDetailsService userDetailsService(){
         return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User '" + username + "' not found"));
+    }
+
+    @Override
+    public JwtResponse updateUser(UpdateUserInfoRequest infoRequest, User user) {
+        // The Email change can be separate with this later with the 3rd party authentication
+        //  but now just using this change
+        user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
+                infoRequest.getEmail(),infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
+        userRepository.save(user);
+        return JwtResponse.fromUser(user);
     }
 }

@@ -21,6 +21,8 @@ public interface JwtService {
 
     public void refreshToken(User user);
 
+    public void updateExpiredToken(String token, boolean isRefresh);
+
 //    public void saveCompressedToken(String tokenData, String refreshTokenData);
 //
 //    public String getDecompressedToken(UUID tokenId);

@@ -57,4 +57,10 @@ public class Token extends BaseEntity {
         this.tokenExpireAt = this.getUpdatedAt();
         this.refreshTokenExpireAt = this.getUpdatedAt();
     }
+
+    public void updateToken(String token, String refreshToken) {
+        this.CompressedTokenData = token;
+        this.CompressedRefreshTokenData = refreshToken;
+        this.updateTimeExpired();
+    }
 }

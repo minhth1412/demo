@@ -1,6 +1,7 @@
 package com.assessment.demo.service;
 
 import com.assessment.demo.dto.request.LoginRequest;
+import com.assessment.demo.dto.request.LogoutRequest;
 import com.assessment.demo.dto.request.SignupRequest;
 import com.assessment.demo.dto.response.JwtResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,9 +12,9 @@ public interface AuthService {
 
     public JwtResponse login(LoginRequest loginRequest);
 
-    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest httpServletRequest, HttpServletResponse response);
+    public JwtResponse refreshToken(LoginRequest request, HttpServletRequest httpServletRequest);
 
-    JwtResponse logout(HttpServletRequest request);
+    JwtResponse logout(LogoutRequest request);//HttpServletRequest request);
 
 //    Object logout(HttpServletResponse response);
 }

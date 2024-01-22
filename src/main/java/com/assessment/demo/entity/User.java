@@ -99,6 +99,16 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.dateOfBirth = dateOfBirth;
     }
 
+    public void updateInfo(String username, String first_name, String last_name, String email, String bio, String image, LocalDate dateOfBirth) {
+        // Not handle the unchanging update yet, will be deployed later
+        this.username = username;
+        this.first_name = first_name;
+        this.last_name = last_name;
+        this.email = email;
+        this.bio = bio;
+        this.image = image;
+        this.dateOfBirth = dateOfBirth;
+    }
     public void updateToken(Token token) {
         this.token = token;
     }

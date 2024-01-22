@@ -1,5 +1,7 @@
 package com.assessment.demo.service;
 
+import com.assessment.demo.dto.request.UpdateUserInfoRequest;
+import com.assessment.demo.dto.response.JwtResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
@@ -18,4 +20,6 @@ public interface UserService {
     // Define needed variables
     void createAdminAccountIfNotExists(int roleId);
     public UserDetailsService userDetailsService();
+
+    JwtResponse updateUser(UpdateUserInfoRequest infoRequest, User user);
 }

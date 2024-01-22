@@ -1,5 +1,6 @@
 package com.assessment.demo.service.impl;
 
+import com.assessment.demo.dto.request.LogoutRequest;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
@@ -11,7 +12,6 @@ import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.RoleService;
-import io.jsonwebtoken.Jwt;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +29,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.util.StringUtils;
 
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -41,8 +39,11 @@ public class AuthServiceImpl implements AuthService {
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private Authentication authentication;
     private final JwtService jwtService;
     private final RoleService roleService;
+
+//    private final HttpSession httpSession;
 
     @Value("${spring.role_user.id}")
     private int roleUserId;
@@ -104,16 +105,36 @@ public class AuthServiceImpl implements AuthService {
         return null;
     }
 
+//    private boolean isUserAlreadyLoggedIn() {
+//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+//            UserDetails userDetails = (UserDetails) auth.getPrincipal();
+//            return httpSession.getAttribute("alreadyLoggedIn") != null;
+//        }
+//        return false;
+//    }
+
     public JwtResponse login(LoginRequest loginRequest) {
         try {
+            log.info("Second reach of login service!");
             // Get user and its info from the loginRequest
-
             String reqUsername = loginRequest.getUsername();
             String reqPassword = loginRequest.getPassword();
-
-            var user = userRepository.findByUsername(reqUsername)
+            log.info("Come here!!!!!!!! 3rd reach!");
+            User user = userRepository.findByUsername(reqUsername)
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-            // Create userAuthToken
+            //
+            if (user.getStatus())
+                return JwtResponse.msg("You are already logged in!");
+            else
+                log.info("The status when created auto set to false");
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null) {
+                log.info("Auth is null");
+                //return JwtResponse.msg("A user is logging in, you need to end his/her session first!");
+            }
+            else
+                log.info("Auth is not null");
             UsernamePasswordAuthenticationToken userAuth = new
                     UsernamePasswordAuthenticationToken(reqUsername, reqPassword);
             //
@@ -121,16 +142,18 @@ public class AuthServiceImpl implements AuthService {
             // Below holds security-related information for the current thread.
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            Token userToken = user.getToken();
-            if (userToken == null) {
+            Token userToken;
+            if (user.getToken() == null) {
                 // Create tokens for new user's login
                 userToken = new Token(jwtService.generateToken(user, false),
                         jwtService.generateToken(user, true));
+
                 userToken.setUser(user);
                 user.setToken(userToken);
-                tokenRepository.save(userToken);
 
             } else {
+                userToken = user.getToken();
+                //log.info("Come here the not null token");
                 // Update expiration time for tokens of user logged in
                 Date current_time = new Date();
                 if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0) {
@@ -138,7 +161,9 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
             user.setStatus(true);
-            log.debug("Login successfully!");
+            tokenRepository.save(userToken);
+            userRepository.save(user);
+            log.info("Login successfully!");
             // return a response with public information of current user
             return JwtResponse.fromUser(user);
         } catch (Exception e) {
@@ -147,7 +172,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
+    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginRequest.getUsername(), loginRequest.getPassword()));
         String authorizationHeader = request.getHeader("Authorization");
@@ -155,7 +180,7 @@ public class AuthServiceImpl implements AuthService {
         if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7).trim();
         } else {
-            log.debug("The token is not valid!\n");
+            log.info("The token is not valid!\n");
             throw new RuntimeException("The token is not exist!\n");
         }
 
@@ -164,27 +189,27 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(username).orElseThrow();
         if (jwtService.isTokenValid(token, user)) {
             jwtService.refreshToken(user);
-            log.debug("Token refreshes successfully!");
+            log.info("Token refreshes successfully!");
             return JwtResponse.fromUser(user);
         }
-        log.debug("if reaches here, it means that the token not refreshed\n");
+        log.info("if reaches here, it means that the token not refreshed\n");
         return null;
     }
 
     @Override
-    public JwtResponse logout(HttpServletRequest request) {
-        final String authHeader = request.getHeader("Authorization");
-
+    public JwtResponse logout(LogoutRequest request){//HttpServletRequest request) {
+        log.info("Come here??????");
+        final String authHeader = request.getToken();//request.getHeader("Authorization");
         // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
         // If not, it continues with the filter chain without attempting JWT authentication.
         if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
-            String s = "The token is not the Bearer token format! Try again.\n";
+            String s = "The token is not the Bearer token format!\n";
             log.error(s);
             return JwtResponse.msg(s);
         }
         final String jwt = authHeader.substring(7);         // We get the token on the header of request after this
         final String username = jwtService.extractUsername(jwt);
-        log.debug("The token in request is: " + jwt);
+        log.info("The token in request is: " + jwt);
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null){
             return JwtResponse.msg("Invalid token");
@@ -192,6 +217,8 @@ public class AuthServiceImpl implements AuthService {
         if (!user.getStatus()) {
             return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
         }
+        else
+            log.info("The hell is status equals true!??");
         // set the security-related information for the current thread into null value.
         SecurityContextHolder.getContext().setAuthentication(null);
         return JwtResponse.msg(null);
