@@ -52,12 +52,17 @@ public class User extends BaseEntity implements UserDetails {              // In
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
-    // Status online or offline
+    // Status account is locked or unlocked by USER
     @Column(name = "status", nullable = false)
     private Boolean status;
 
+    // Status account is deleted or not deleted by ADMIN
     @Column(name = "isDeleted", nullable = false)
     private Boolean isDeleted;
+
+    // Status account is online or offline, change when a user login/logout
+    @Column(name = "isOnline", nullable = false)
+    private Boolean isOnline;
 
     // 2. Nullable fields
     @Column(name = "bio", length = 200)
@@ -81,7 +86,7 @@ public class User extends BaseEntity implements UserDetails {              // In
 
     // Should create a new User with follow details in 1 line, not separate to maximize the performance
     public User(String username,String password,String email,String first_name,String last_name,Role role,
-                @Nullable String bio,@Nullable String image, @Nullable LocalDate dateOfBirth) {
+                @Nullable String bio,@Nullable String image, @Nullable LocalDate dateOfBirth, boolean isOnline) {
         // Create user with important details
         this();
         this.username = username;
@@ -90,13 +95,15 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.role = role;
         this.token = null;
         this.isDeleted = false;
-        this.status = false;
+        this.status = true;
+        this.isOnline = isOnline;
         // Below is user profile parts
         this.first_name = first_name;
         this.last_name = last_name;
         this.bio = bio;
         this.image = image;
         this.dateOfBirth = dateOfBirth;
+
     }
 
     public void updateInfo(String username, String first_name, String last_name, String email, String bio, String image, LocalDate dateOfBirth) {
