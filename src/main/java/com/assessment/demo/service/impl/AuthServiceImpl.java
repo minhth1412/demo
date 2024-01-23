@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.Date;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +38,8 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private Authentication authentication;
+    //private final AuthenticationManager authenticationManager;
+    //private Authentication authentication;
     private final JwtService jwtService;
     private final RoleService roleService;
 
@@ -105,59 +106,66 @@ public class AuthServiceImpl implements AuthService {
         return null;
     }
 
-    private boolean isUserAlreadyLoggedIn(User user) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) auth.getPrincipal();
-
-        }
-        return false;
-    }
+//    private boolean isUserAlreadyLoggedIn(User user) {
+//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+//            UserDetails userDetails = (UserDetails) auth.getPrincipal();
+//
+//        }
+//        return false;
+//    }
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
             // Get user and its info from the loginRequest
             String reqUsername = loginRequest.getUsername();
             String reqPassword = loginRequest.getPassword();
+
+            // Check username and password
             User user = userRepository.findByUsername(reqUsername)
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
             //
+            if (!passwordEncoder.matches(reqPassword,user.getPassword())) {
+                throw new RuntimeException("Invalid username or password");
+            }
+            // Check online status
             if (user.getIsOnline())
                 return JwtResponse.msg("You are already logged in!");
             else
-                log.info("Set up isOnline again");
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null) {
-                log.info("Auth is null");
-                //return JwtResponse.msg("A user is logging in, you need to end his/her session first!");
-            } else
-                log.info("Auth is not null");
-            UsernamePasswordAuthenticationToken userAuth = new
-                    UsernamePasswordAuthenticationToken(reqUsername, reqPassword);
-            //
-            Authentication authentication = authenticationManager.authenticate(userAuth);
-            // Below holds security-related information for the current thread.
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                user.setIsOnline(true);
 
+//            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//            if (auth == null) {
+//                log.info("Auth is null");
+//                //return JwtResponse.msg("A user is logging in, you need to end his/her session first!");
+//            } else
+//                log.info("Auth is not null");
+//            UsernamePasswordAuthenticationToken userAuth = new
+//                    UsernamePasswordAuthenticationToken(reqUsername, reqPassword);
+//            //
+//            Authentication authentication = authenticationManager.authenticate(userAuth);
+//            // Below holds security-related information for the current thread.
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+            // Check the token of current user logging in
             Token userToken;
+            String tk = jwtService.generateToken(user, false);
+            String refreshTk = jwtService.generateToken(user, true);
+            Date tkTime = jwtService.extractExpiration(tk);
+            Date refreshTkTime = jwtService.extractExpiration(refreshTk);
             if (user.getToken() == null) {
                 // Create tokens for new user's login
-                userToken = new Token(jwtService.generateToken(user, false),
-                        jwtService.generateToken(user, true));
-
-                userToken.setUser(user);
-                user.setToken(userToken);
-
+                userToken = new Token(tk, refreshTk, tkTime, refreshTkTime);
             } else {
                 userToken = user.getToken();
                 //log.info("Come here the not null token");
                 // Update expiration time for tokens of user logged in
                 Date current_time = new Date();
                 if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0) {
-                    userToken.updateTimeExpired();
+                    userToken.updateToken(tk, refreshTk, tkTime, refreshTkTime);
                 }
             }
-            user.setStatus(true);
+            userToken.setUser(user);
+            user.setToken(userToken);
             tokenRepository.save(userToken);
             userRepository.save(user);
             log.info("Login successfully!");
@@ -170,8 +178,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(), loginRequest.getPassword()));
+//        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+//                loginRequest.getUsername(), loginRequest.getPassword()));
         String authorizationHeader = request.getHeader("Authorization");
         String token;
         if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
@@ -211,12 +219,15 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             return JwtResponse.msg("Invalid token");
         }
-        if (!user.getStatus()) {
+        if (!user.getIsOnline()) {
             return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
-        } else
-            log.info("The hell is status equals true!??");
+        } else {
+            user.setIsOnline(false);
+            log.info("Of course the status equals true!");
+        }
         // set the security-related information for the current thread into null value.
-        SecurityContextHolder.getContext().setAuthentication(null);
+        //SecurityContextHolder.getContext().setAuthentication(null);
+        userRepository.save(user);
         return JwtResponse.msg(null);
     }
 }

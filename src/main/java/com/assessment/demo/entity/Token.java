@@ -36,31 +36,31 @@ public class Token extends BaseEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date refreshTokenExpireAt;
 
-    @OneToOne(mappedBy = "token", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "token", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private User user;
 
     public Token() {
-        this.updateTimeExpired();
+        super();
     }
 
-    public Token(String CompressedTokenData, String CompressedRefreshTokenData){
+    public Token(String token, String refreshToken, Date tokenExpireAt, Date refreshTokenExpireAt){
         super();
-        this.updateTimeExpired();
+        this.updateTimeExpired(tokenExpireAt, refreshTokenExpireAt);
         this.tokenId = UUID.randomUUID();
-        this.CompressedTokenData = CompressedTokenData;
-        this.CompressedRefreshTokenData = CompressedRefreshTokenData;
+        this.CompressedTokenData = token;
+        this.CompressedRefreshTokenData = refreshToken;
     }
 
     // Method to update new expiration time of current tokens
-    public void updateTimeExpired() {
-        this.setUpdatedAt(new Date());
-        this.tokenExpireAt = this.getUpdatedAt();
-        this.refreshTokenExpireAt = this.getUpdatedAt();
+    public void updateTimeExpired(Date tokenExpireAt, Date refreshTokenExpireAt) {
+        this.tokenExpireAt = tokenExpireAt;
+        this.refreshTokenExpireAt = refreshTokenExpireAt;
     }
 
-    public void updateToken(String token, String refreshToken) {
+    public void updateToken(String token, String refreshToken, Date tokenExpireAt, Date refreshTokenExpireAt) {
         this.CompressedTokenData = token;
         this.CompressedRefreshTokenData = refreshToken;
-        this.updateTimeExpired();
+        this.updateTimeExpired(tokenExpireAt, refreshTokenExpireAt);
+        this.setUpdatedAt(new Date());
     }
 }

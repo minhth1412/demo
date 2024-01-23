@@ -1,6 +1,7 @@
 package com.assessment.demo.entity.base;
 
 import com.assessment.demo.entity.Interact;
+import jakarta.persistence.Column;
 
 import java.util.HashSet;
 import java.util.Set;

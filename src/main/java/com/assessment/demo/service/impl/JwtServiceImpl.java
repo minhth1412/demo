@@ -3,30 +3,20 @@ package com.assessment.demo.service.impl;
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.TokenRepository;
-import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.JwtService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.*;
-import java.util.zip.GZIPInputStream;
-
 import java.security.Key;
 import java.util.function.Function;
-import java.util.zip.GZIPOutputStream;
 
 @Service
 @Slf4j
@@ -39,9 +29,7 @@ public class JwtServiceImpl implements JwtService {
     @Value("${spring.jwt.refreshTokenLifespan}")
     private int refreshTokenLifespan;
 
-    private TokenRepository tokenRepository;
-
-    private UserRepository userRepository;
+    private final TokenRepository tokenRepository;
 
     public String generateToken(UserDetails userDetails,boolean isRefresh) {
         Map<String, Object> Claims = new HashMap<>();
@@ -103,27 +91,49 @@ public class JwtServiceImpl implements JwtService {
 
     // Check if the token is valid by comparing the username and verifying expiration
     public boolean isTokenValid(String token,UserDetails userDetails) {
-        final String username = extractUsername(token);
-        // Check if the extracted username matches the username from UserDetails and the token is not expired
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        try {
+            Claims claims = extractAllClaims(token);
+            final String username = extractUsername(token);
+            if (!username.equals(userDetails.getUsername())) {
+                throw new RuntimeException("Invalid token!");
+            }
+            // Check if the extracted username matches the username from UserDetails and the token is not expired
+            if (isTokenExpired(token)) {
+                throw new ExpiredJwtException(null, claims, "JWT token is expired! Please login again.");
+            }
+            return true;
+
+        } catch (SignatureException e) {
+            log.error("Invalid JWT signature: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            log.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error(e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
+        }catch (Exception e) {
+            log.error("An unexpected error occurred during JWT validation: {}", e.getMessage());
+        }
+        return false;
     }
 
     @Override
     public void refreshToken(User user) {
         String token = generateToken(user,false);
         String refreshToken = generateToken(user,true);
+        Date tkTime = extractExpiration(token);
+        Date refreshTkTime = extractExpiration(refreshToken);
+
         Token oldToken = tokenRepository.findByTokenId(user.getToken().getTokenId()).orElse(null);
         if (oldToken != null) {
-            oldToken.updateToken(token, refreshToken);
-            user.setToken(null);
-            tokenRepository.delete(oldToken);
-        }
-        else{
+            oldToken.updateToken(token,refreshToken,tkTime,refreshTkTime);
+        } else {
             throw new RuntimeException("There is no token to refresh!");
         }
         // Save changes
         tokenRepository.save(oldToken);
-        userRepository.save(user);
     }
 
     @Override

@@ -31,7 +31,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     private Role role;
 
     // If 1 user is removed, the token of that user will be deleted too
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tokenId")
     private Token token;
 

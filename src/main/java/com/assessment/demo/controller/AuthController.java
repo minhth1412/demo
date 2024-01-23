@@ -54,7 +54,6 @@ public class AuthController {
     public ResponseEntity<?> logout(HttpServletRequest request){ // HttpServletRequest request) {
         // Explicitly invalidate the current user's authentication token
         JwtResponse response = authService.logout(request);
-        log.info("Here comes.....");
         if (response.getMsg() != null){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
         }

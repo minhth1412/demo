@@ -26,6 +26,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -44,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     It contains the logic for JWT authentication.
      */
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,@NonNull HttpServletResponse response,@NonNull FilterChain filterChain)
             throws ServletException, IOException {
         // Variable to save the Authorization in Http Request Header
         final String authHeader = request.getHeader("Authorization");
@@ -55,8 +56,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
         // If not, it continues with the filter chain without attempting JWT authentication.
-        if (StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
-            filterChain.doFilter(request, response);
+        if (StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
+            filterChain.doFilter(request,response);
             return;
         }
 
@@ -70,20 +71,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = userService.userDetailsService().loadUserByUsername(username);
 
             if (jwtService.isTokenExpired(jwt)) {
-                handleExpiredToken(response, "Token has expired. Please login again for token refreshment.");
+                handleExpiredToken(response,"Token has expired. Please login again for token refreshment.");
                 return;
             }
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+            if (user.getToken() == null) {
+                throw new RuntimeException("User token is invalid!");
+            }
+
             if (!user.isCredentialsNonExpired()) {
-                handleExpiredToken(response, "Token is no longer valid. Please login again.");
+                handleExpiredToken(response,"Token is no longer valid. Please login again.");
                 return;
             }
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
+            if (jwtService.isTokenValid(jwt,userDetails)) {
                 UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
+                        userDetails,null,userDetails.getAuthorities());
                 token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(token);
                 // jwtService.updateExpiredToken(jwt, true);
@@ -91,10 +96,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         // continues with the filter chain
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(request,response);
     }
 
-    private void handleExpiredToken(HttpServletResponse response, String message) throws IOException {
+    private void handleExpiredToken(HttpServletResponse response,String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"" + message + "\"}");

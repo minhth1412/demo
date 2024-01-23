@@ -1,6 +1,7 @@
 package com.assessment.demo.repository;
 
 import com.assessment.demo.entity.Role;
+import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,10 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Boolean existsByUsername(String username);
+
+    List<User> findByRoleRoleNameNot(String roleName);
+
+    Optional<Token> findTokenByUsername(String token);
 
     Boolean existsByEmail(String email);
 

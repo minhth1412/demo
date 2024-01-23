@@ -1,13 +1,11 @@
 package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.PostDto;
-import com.assessment.demo.dto.response.user.UserDto;
-import com.assessment.demo.dto.request.PostRequest;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.JwtResponse;
+import com.assessment.demo.dto.response.admin.UserDto;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
-import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.PostService;
@@ -17,39 +15,32 @@ import com.google.gson.GsonBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/user/")
-public class UserController {
+@RequestMapping("/admin/")
+public class AdminController {
+
     private final PostService postService;
     private final UserService userService;
     private final JwtService jwtService;
     private final UserRepository userRepository;
-    private final PostRepository postRepository;
 
-    @GetMapping("search")
-    public ResponseEntity<?> searchByUsername(@RequestParam String username) {
-        try {
-            List<User> searchResults = userRepository.searchUsersByUsername(username);
-            // map User entities to a DTO if you only want to expose certain information
-            // For simplicity, let's assume UserDTO is a DTO class representing a simplified User entity
-            List<UserDto> userDTOs = searchResults.stream()
-                    .map(user -> new UserDto(user.getUsername(),user.getUserId()))
-                    .collect(Collectors.toList());
+    @Value("${spring.role_admin.name}")
+    private String roleName;
 
-            return new ResponseEntity<>(userDTOs,HttpStatus.OK);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the search.");
-        }
-    }
+    @Value("${spring.account.admin.username}")
+    private String adminName;
 
     private String extractJwtFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader("Authorization");
@@ -59,7 +50,6 @@ public class UserController {
             log.info(errorMessage);
             throw new IllegalArgumentException(errorMessage);
         }
-
         // Extract and return the token from the Authorization header
         return authHeader.substring(7);
     }
@@ -68,18 +58,58 @@ public class UserController {
     //  + user extract from the jwt exists
     //  + is token expires
     //  + is the user extract from the jwt equals with the user get from userId
-    private boolean isTokenValid(HttpServletRequest request, User user) {
+    // it will throw error if 1 of 3 things above does not match
+    private boolean isTokenValid(HttpServletRequest request,User user) {
         String jwt = extractJwtFromRequest(request);
         String username = jwtService.extractUsername(jwt);
-
         return userRepository.findByUsername(username).isEmpty() &&
-                jwtService.isTokenValid(jwt, user);
+                jwtService.isTokenValid(jwt,user);
     }
 
-    private String userFromToken(HttpServletRequest request) {
+    private boolean isAdminSession(HttpServletRequest request) {
         String jwt = extractJwtFromRequest(request);
-        return jwtService.extractUsername(jwt);
+        String username = jwtService.extractUsername(jwt);
+        return Objects.equals(username,adminName);
     }
+
+    @GetMapping("search/users")
+    public ResponseEntity<?> searchAllUsers(HttpServletRequest request) {
+        try {
+            if (!isAdminSession(request)) {
+                throw new RuntimeException("Invalid action!");
+            }
+            List<User> searchResults = userRepository.findAll();
+//            List<UserDto> userDTOs = searchResults.stream()
+//                    .map(user -> new UserDto(user.getUserId(),
+//                            user.getUsername(),
+//                            user.getRole().getRoleName(),
+//                            user.getFirst_name(),
+//                            user.getLast_name(),
+//                            user.getEmail(),
+//                            user.getPassword(),
+//                            user.getStatus(),
+//                            user.getIsDeleted(),
+//                            user.getIsOnline(),
+//                            user.getBio(),
+//                            user.getImage(),
+//                            user.getDateOfBirth()))
+//                    .collect(Collectors.toList());
+
+
+
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            // Convert searchResults list to pretty-printed JSON
+            String res = gson.toJson(userDTOs);
+            log.info("Go to here and finish");
+            return ResponseEntity.status(HttpStatus.OK).body(res);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the search.");
+        }
+    }
+
+
 
 
     // Base on UserId on search api, we have that become input here
@@ -93,7 +123,7 @@ public class UserController {
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
 
-        if (isTokenValid(request, user) && !user.getIsOnline())
+        if (isTokenValid(request,user) && !user.getIsOnline())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
         List<Post> posts = postService.getAllPostsForCurrentUser(user.getUsername());
@@ -129,34 +159,17 @@ public class UserController {
         User user = userRepository.findByUserId(userId).orElse(null);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
-        if (isTokenValid(request, user) && !user.getIsOnline())
+        if (isTokenValid(request,user) && !user.getIsOnline())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
-        }
-        JwtResponse response = userService.updateUser(infoRequest, user);
+//        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
+//        }
+        JwtResponse response = userService.updateUser(infoRequest,user);
         log.info("Here comes the update");
-        if (response.getMsg() != null){
+        if (response.getMsg() != null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
         }
         return ResponseEntity.ok("Update information successfully! Redirect to homepage...");
     }
 
-    @PostMapping("create_post/{userId}")
-    public ResponseEntity<?> createNewPost(@PathVariable UUID userId,HttpServletRequest request,@RequestBody PostRequest postRequest) {
-        User user = userRepository.findByUserId(userId).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
-        if (isTokenValid(request, user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
-        }
-
-        Post post = new Post(postRequest.getContent(), postRequest.getTitle(), postRequest.getLocation(),
-                postRequest.getImage(), user);
-
-        postRepository.save(post);
-        return ResponseEntity.ok().body("Your post is published!");
-    }
 }
