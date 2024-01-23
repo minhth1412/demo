@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
         var user = userRepository.findUserByRole(adminRole);
         if (user.isEmpty())
             userRepository.save(new User(username, new BCryptPasswordEncoder().encode(password),
-                    email, firstname, lastname, adminRole, null, null, null));
+                    email, firstname, lastname, adminRole, null, null, null, false));
     }
 
     @Override

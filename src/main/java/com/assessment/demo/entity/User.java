@@ -139,7 +139,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     // DEVELOP LATER
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return this.isOnline;
     }
 
     // If the user delete account, isEnable will be set equals to false

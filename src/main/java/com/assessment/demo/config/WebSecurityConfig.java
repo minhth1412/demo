@@ -42,20 +42,19 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) ->
-                        authorize.requestMatchers("/api/**").permitAll()
+                        authorize.requestMatchers("/api/**").permitAll()   // Endpoint to generate token or create a new account
                                 .requestMatchers("/admin/**").hasAnyAuthority("ADMIN")
                                 .requestMatchers("/user/**").hasAnyAuthority("USER")
                                 .anyRequest().authenticated())
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .permitAll()
-                )
-                // If there is any exception that is not being handled yet, it comes here
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                // Using STATELESS = No Session save, each request will be treated independently
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        .permitAll());
+        // If there is any exception that is not being handled yet, it comes here
+        http.exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler));
+        // Using STATELESS = No Session save, each request will be treated independently
+        http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter,UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

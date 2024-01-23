@@ -1,7 +1,9 @@
 package com.assessment.demo.security;
 
 
+import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.TokenRepository;
+import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.UserService;
 import jakarta.servlet.FilterChain;
@@ -17,6 +19,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -32,6 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     // Can't use both userService and userDetailsService here
     private final UserService userService;
+
+    private final UserRepository userRepository;
+
     /*
     doFilterInternal method: This method is part of the OncePerRequestFilter class
         and is called for each incoming HTTP request.
@@ -60,22 +66,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         username = jwtService.extractUsername(jwt);        // Extract username from token's claims
 
         // Check the username is empty or not
-        if (StringUtils.isNotEmpty(username) && SecurityContextHolder.getContext().getAuthentication() == null ) {
+        if (StringUtils.isNotEmpty(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userService.userDetailsService().loadUserByUsername(username);
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-                        userDetails,null,userDetails.getAuthorities()
-                );
+            if (jwtService.isTokenExpired(jwt)) {
+                handleExpiredToken(response, "Token has expired. Please login again for token refreshment.");
+                return;
+            }
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+            if (!user.isCredentialsNonExpired()) {
+                handleExpiredToken(response, "Token is no longer valid. Please login again.");
+                return;
+            }
+
+            if (jwtService.isTokenValid(jwt, userDetails)) {
+                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
                 token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(token);
-                jwtService.updateExpiredToken(jwt, true);
-                jwtService.updateExpiredToken(jwt, false);
+                // jwtService.updateExpiredToken(jwt, true);
+                // jwtService.updateExpiredToken(jwt, false);
             }
         }
         // continues with the filter chain
         filterChain.doFilter(request, response);
+    }
+
+    private void handleExpiredToken(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"" + message + "\"}");
+        response.getWriter().flush();
+        response.getWriter().close();
     }
 }

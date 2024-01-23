@@ -142,7 +142,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     // Check if the token is expired by comparing the expiration time with the current time
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractClaim(token,Claims::getExpiration).before(new Date());
     }
 }

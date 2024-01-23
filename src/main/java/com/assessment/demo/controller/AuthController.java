@@ -1,7 +1,6 @@
 package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.LoginRequest;
-import com.assessment.demo.dto.request.LogoutRequest;
 import com.assessment.demo.dto.request.SignupRequest;
 import com.assessment.demo.dto.response.JwtResponse;
 
@@ -52,7 +51,7 @@ public class AuthController {
     }
 
     @PostMapping("logout")
-    public ResponseEntity<?> logout(@RequestBody LogoutRequest request){ // HttpServletRequest request) {
+    public ResponseEntity<?> logout(HttpServletRequest request){ // HttpServletRequest request) {
         // Explicitly invalidate the current user's authentication token
         JwtResponse response = authService.logout(request);
         log.info("Here comes.....");

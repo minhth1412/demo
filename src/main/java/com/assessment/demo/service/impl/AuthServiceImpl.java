@@ -1,6 +1,5 @@
 package com.assessment.demo.service.impl;
 
-import com.assessment.demo.dto.request.LogoutRequest;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
@@ -23,9 +22,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.util.StringUtils;
 
 import java.util.Date;
@@ -65,7 +64,8 @@ public class AuthServiceImpl implements AuthService {
                     new Role(roleUserId, roleUserName),
                     signupRequest.getBio(),
                     signupRequest.getImage(),
-                    signupRequest.getDateOfBirth());
+                    signupRequest.getDateOfBirth(),
+                    false);
             // A new user signing up auto receive USER role,
             // it can be edited later by whom has ADMIN role.
 
@@ -105,35 +105,32 @@ public class AuthServiceImpl implements AuthService {
         return null;
     }
 
-//    private boolean isUserAlreadyLoggedIn() {
-//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-//            UserDetails userDetails = (UserDetails) auth.getPrincipal();
-//            return httpSession.getAttribute("alreadyLoggedIn") != null;
-//        }
-//        return false;
-//    }
+    private boolean isUserAlreadyLoggedIn(User user) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) auth.getPrincipal();
+
+        }
+        return false;
+    }
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            log.info("Second reach of login service!");
             // Get user and its info from the loginRequest
             String reqUsername = loginRequest.getUsername();
             String reqPassword = loginRequest.getPassword();
-            log.info("Come here!!!!!!!! 3rd reach!");
             User user = userRepository.findByUsername(reqUsername)
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
             //
-            if (user.getStatus())
+            if (user.getIsOnline())
                 return JwtResponse.msg("You are already logged in!");
             else
-                log.info("The status when created auto set to false");
+                log.info("Set up isOnline again");
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null) {
                 log.info("Auth is null");
                 //return JwtResponse.msg("A user is logging in, you need to end his/her session first!");
-            }
-            else
+            } else
                 log.info("Auth is not null");
             UsernamePasswordAuthenticationToken userAuth = new
                     UsernamePasswordAuthenticationToken(reqUsername, reqPassword);
@@ -197,9 +194,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public JwtResponse logout(LogoutRequest request){//HttpServletRequest request) {
+    public JwtResponse logout(HttpServletRequest request) {//HttpServletRequest request) {
         log.info("Come here??????");
-        final String authHeader = request.getToken();//request.getHeader("Authorization");
+        final String authHeader = request.getHeader("Authorization");
         // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
         // If not, it continues with the filter chain without attempting JWT authentication.
         if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
@@ -211,13 +208,12 @@ public class AuthServiceImpl implements AuthService {
         final String username = jwtService.extractUsername(jwt);
         log.info("The token in request is: " + jwt);
         User user = userRepository.findByUsername(username).orElse(null);
-        if (user == null){
+        if (user == null) {
             return JwtResponse.msg("Invalid token");
         }
         if (!user.getStatus()) {
             return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
-        }
-        else
+        } else
             log.info("The hell is status equals true!??");
         // set the security-related information for the current thread into null value.
         SecurityContextHolder.getContext().setAuthentication(null);
