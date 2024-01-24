@@ -5,6 +5,7 @@ import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -28,11 +29,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.username = :username")
     Optional<User> findByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%'))")
-    List<User> searchUsersByUsername(String username);
-
     @Query("SELECT u FROM User u WHERE u.userId = :userId")
     Optional<User> findByUserId(UUID userId);
+
+    @Query(value = "SELECT * FROM user u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', ?1, '%')) ESCAPE ''", nativeQuery = true)
+    List<User> findByUsernameContaining(String partialUsername);
 
 //    @Query("SELECT u FROM User u WHERE u.email = :email")
 //    Optional<User> findUserByEmail(String email);

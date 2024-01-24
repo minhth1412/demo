@@ -1,7 +1,7 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
-import com.assessment.demo.dto.response.JwtResponse;
+import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
@@ -9,14 +9,12 @@ import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.List;
 
 @Service
@@ -53,6 +51,25 @@ public class UserServiceImpl implements UserService {
     public UserDetailsService userDetailsService(){
         return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User '" + username + "' not found"));
+    }
+    public List<User> findUsersByPartialUsername(String partialUsername) {
+        System.out.println("Searching for users with partial username: " + partialUsername);
+        List<User> users = userRepository.findByUsernameContaining(partialUsername);
+        System.out.println("Found " + users.size() + " users.");
+//        List<User> users1 = userRepository.findByUsername(Username);
+//        System.out.println("Found " + users1.size() + " users.");
+        return users;
+        //return userRepository.findByUsernameContaining(partialUsername);
+    }
+
+    @Override
+    public List<User> searchUsers(String query,int page,int pageSize,String sort,String order) {
+        return null;
+    }
+
+    @Override
+    public int getTotalUsers(String query) {
+        return 0;
     }
 
     @Override

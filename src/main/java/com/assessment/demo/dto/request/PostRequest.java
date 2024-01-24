@@ -1,11 +1,6 @@
 package com.assessment.demo.dto.request;
 
-import com.assessment.demo.entity.Comment;
 import com.assessment.demo.entity.Enum.PostStatus;
-import com.assessment.demo.entity.Interact;
-import com.assessment.demo.entity.Post;
-import com.assessment.demo.entity.User;
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

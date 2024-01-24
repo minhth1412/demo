@@ -2,7 +2,9 @@ package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.response.JwtResponse;
+import com.assessment.demo.dto.request.resetPasswordRequest;
+import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.others.JwtResponse;
 
 import com.assessment.demo.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,4 +71,13 @@ public class AuthController {
     }
 
     // CREATE CHANGE PASSWORD VS FORGET PASSWORD HERE
+    @PostMapping("reset_password")
+    public ResponseEntity<?> resetPassword(@RequestBody resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
+        UsualResponse usualResponse = authService.resetPassword(resetPasswordRequest,request);
+        return ResponseEntity.status(usualResponse.getExceptionType()).body(usualResponse.getMessage());
+    }
+
+   /* @PostMapping("forgot_password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest,HttpServletRequest request) {
+    }*/
 }

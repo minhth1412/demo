@@ -1,6 +1,7 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.entity.Post;
+import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.UserRepository;

@@ -1,28 +1,26 @@
 package com.assessment.demo.service.impl;
 
+import com.assessment.demo.dto.request.resetPasswordRequest;
+import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.response.JwtResponse;
+import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
+import com.assessment.demo.exception.InvalidJwtException;
 import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
-import com.assessment.demo.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -38,12 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-    //private final AuthenticationManager authenticationManager;
-    //private Authentication authentication;
     private final JwtService jwtService;
-    private final RoleService roleService;
-
-//    private final HttpSession httpSession;
 
     @Value("${spring.role_user.id}")
     private int roleUserId;
@@ -51,9 +44,12 @@ public class AuthServiceImpl implements AuthService {
     @Value("${spring.role_user.name}")
     private String roleUserName;
 
+    // Regex for password requirements
+    private static final String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$";
+
     public JwtResponse signup(SignupRequest signupRequest) {
         try {
-            String err = getError(signupRequest, userRepository);
+            String err = getError(signupRequest,userRepository);
 
             if (err != null)
                 throw new ValidationException(err);
@@ -62,18 +58,18 @@ public class AuthServiceImpl implements AuthService {
                     signupRequest.getEmail(),
                     signupRequest.getFirstname(),
                     signupRequest.getLastname(),
-                    new Role(roleUserId, roleUserName),
+                    new Role(roleUserId,roleUserName),
                     signupRequest.getBio(),
                     signupRequest.getImage(),
                     signupRequest.getDateOfBirth(),
                     false);
-            // A new user signing up auto receive USER role,
+            // A new user signing up has default USER role,
             // it can be edited later by whom has ADMIN role.
 
             log.info("Your account is created successfully! Return to the login page...");
             userRepository.save(user);
 
-            return JwtResponse.fromUser(user, false);
+            return JwtResponse.fromUser(user,false);
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
             return JwtResponse.msg(e.getMessage());
@@ -83,49 +79,30 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private static String getError(SignupRequest signupRequest, UserRepository userRepository) {
-        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty()) {
-            return "Password must not be empty";
-        }
-        if (!signupRequest.getPassword().equals(signupRequest.getRepassword())) {
-            return "Password and repassword do not match";
-        }
-        if (signupRequest.getPassword().length() < 4) {
-            return "Password must be at least 5 characters long";
-        }
-        if (userRepository.existsByUsername(signupRequest.getUsername()))
-            return "Username existed";
-        if (userRepository.existsByEmail(signupRequest.getEmail()))
-            return "Email already existed";
-        // Regex for password requirements
-        String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$";
-
-        if (!signupRequest.getPassword().matches(passwordRegex)) {
-            return "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
-        }
-        return null;
+    private static String getError(SignupRequest signupRequest,UserRepository userRepository) {
+        String msg = null;
+        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty())
+            msg = "Password must not be empty";
+        else if (!signupRequest.getPassword().equals(signupRequest.getRepassword()))
+            msg = "Password and repassword do not match";
+        else if (signupRequest.getPassword().length() < 4)
+            msg = "Password must be at least 5 characters long";
+        else if (userRepository.existsByUsername(signupRequest.getUsername()))
+            msg = "Username existed";
+        else if (userRepository.existsByEmail(signupRequest.getEmail()))
+            msg = "Email already existed";
+        else if (!signupRequest.getPassword().matches(passwordRegex))
+            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
+        return msg;
     }
-
-//    private boolean isUserAlreadyLoggedIn(User user) {
-//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//        if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-//            UserDetails userDetails = (UserDetails) auth.getPrincipal();
-//
-//        }
-//        return false;
-//    }
 
     public JwtResponse login(LoginRequest loginRequest) {
         try {
-            // Get user and its info from the loginRequest
-            String reqUsername = loginRequest.getUsername();
-            String reqPassword = loginRequest.getPassword();
-
             // Check username and password
-            User user = userRepository.findByUsername(reqUsername)
+            User user = userRepository.findByUsername(loginRequest.getUsername())
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-            //
-            if (!passwordEncoder.matches(reqPassword,user.getPassword())) {
+
+            if (!passwordEncoder.matches(loginRequest.getPassword(),user.getPassword())) {
                 throw new RuntimeException("Invalid username or password");
             }
             // Check online status
@@ -134,34 +111,20 @@ public class AuthServiceImpl implements AuthService {
             else
                 user.setIsOnline(true);
 
-//            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-//            if (auth == null) {
-//                log.info("Auth is null");
-//                //return JwtResponse.msg("A user is logging in, you need to end his/her session first!");
-//            } else
-//                log.info("Auth is not null");
-//            UsernamePasswordAuthenticationToken userAuth = new
-//                    UsernamePasswordAuthenticationToken(reqUsername, reqPassword);
-//            //
-//            Authentication authentication = authenticationManager.authenticate(userAuth);
-//            // Below holds security-related information for the current thread.
-//            SecurityContextHolder.getContext().setAuthentication(authentication);
-            // Check the token of current user logging in
             Token userToken;
-            String tk = jwtService.generateToken(user, false);
-            String refreshTk = jwtService.generateToken(user, true);
+            String tk = jwtService.generateToken(user,false);
+            String refreshTk = jwtService.generateToken(user,true);
             Date tkTime = jwtService.extractExpiration(tk);
             Date refreshTkTime = jwtService.extractExpiration(refreshTk);
             if (user.getToken() == null) {
                 // Create tokens for new user's login
-                userToken = new Token(tk, refreshTk, tkTime, refreshTkTime);
+                userToken = new Token(tk,refreshTk,tkTime,refreshTkTime);
             } else {
                 userToken = user.getToken();
-                //log.info("Come here the not null token");
                 // Update expiration time for tokens of user logged in
                 Date current_time = new Date();
                 if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0) {
-                    userToken.updateToken(tk, refreshTk, tkTime, refreshTkTime);
+                    userToken.updateToken(tk,refreshTk,tkTime,refreshTkTime);
                 }
             }
             userToken.setUser(user);
@@ -177,45 +140,30 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    public JwtResponse refreshToken(LoginRequest loginRequest, HttpServletRequest request) {
-//        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-//                loginRequest.getUsername(), loginRequest.getPassword()));
+    public JwtResponse refreshToken(LoginRequest loginRequest,HttpServletRequest request) {
         String authorizationHeader = request.getHeader("Authorization");
-        String token;
-        if (StringUtils.hasText(authorizationHeader) && authorizationHeader.startsWith("Bearer ")) {
-            token = authorizationHeader.substring(7).trim();
-        } else {
-            log.info("The token is not valid!\n");
-            throw new RuntimeException("The token is not exist!\n");
-        }
 
+        if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith("Bearer ")) {
+            String errorMessage = "The token is not the Bearer token format!";
+            log.error(errorMessage);
+            throw new RuntimeException(errorMessage);
+        }
         // extract username from the claim subject of the refresh token
-        String username = jwtService.extractUsername(token);
-        User user = userRepository.findByUsername(username).orElseThrow();
-        if (jwtService.isTokenValid(token, user)) {
+        String jwt = authorizationHeader.substring(7).trim();
+        String username = jwtService.extractUsername(jwt);
+        User user = userRepository.findByUsername(username).orElseThrow();  //~ Throw what exception?
+        if (jwtService.isTokenValid(jwt,user)) {
             jwtService.refreshToken(user);
             log.info("Token refreshes successfully!");
             return JwtResponse.fromUser(user);
         }
-        log.info("if reaches here, it means that the token not refreshed\n");
+        log.error("The token is not refreshed!");
         return null;
     }
 
     @Override
     public JwtResponse logout(HttpServletRequest request) {//HttpServletRequest request) {
-        log.info("Come here??????");
-        final String authHeader = request.getHeader("Authorization");
-        // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
-        // If not, it continues with the filter chain without attempting JWT authentication.
-        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
-            String s = "The token is not the Bearer token format!\n";
-            log.error(s);
-            return JwtResponse.msg(s);
-        }
-        final String jwt = authHeader.substring(7);         // We get the token on the header of request after this
-        final String username = jwtService.extractUsername(jwt);
-        log.info("The token in request is: " + jwt);
-        User user = userRepository.findByUsername(username).orElse(null);
+        User user = extractUserFromRequest(request);
         if (user == null) {
             return JwtResponse.msg("Invalid token");
         }
@@ -223,12 +171,53 @@ public class AuthServiceImpl implements AuthService {
             return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
         } else {
             user.setIsOnline(false);
-            log.info("Of course the status equals true!");
+            userRepository.save(user);
+            return JwtResponse.msg(null);
         }
-        // set the security-related information for the current thread into null value.
-        //SecurityContextHolder.getContext().setAuthentication(null);
-        userRepository.save(user);
-        return JwtResponse.msg(null);
     }
+
+    // Apply for all accounts
+    @Override
+    public UsualResponse resetPassword(resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
+        String msg = null;
+        try {
+            User user = extractUserFromRequest(request);
+            if (user == null)
+                msg = "Bad credentials!";
+            else if (!Objects.equals(resetPasswordRequest.getOldPassword(),user.getPassword()))
+                msg = "Wrong old password!";
+            else if (!Objects.equals(resetPasswordRequest.getNewPassword(),resetPasswordRequest.getConfirmNewPassword()))
+                msg = "Confirm password does not match with the new one!";
+            else if (!resetPasswordRequest.getNewPassword().matches(passwordRegex))
+                msg = "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            if (msg == null) {
+                status = HttpStatus.OK;
+                msg = "Your password is changed!";
+            }
+            return UsualResponse.builder().exceptionType(status).message(msg).build();
+        } catch (InvalidJwtException e) {
+            log.error(e.getMessage());
+            return UsualResponse.builder().exceptionType(HttpStatus.UNAUTHORIZED).message("Invalid token!").build();
+        } catch (Exception e) {
+            return UsualResponse.init(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public User extractUserFromRequest(HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+        // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
+        // If not, it continues with the filter chain without attempting JWT authentication.
+        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
+            throw new InvalidJwtException("The token is not the Bearer token format!");
+        }
+        final String jwt = authHeader.substring(7);         // We get the token on the header of request after this
+        final String username = jwtService.extractUsername(jwt);
+        log.info("The token in request is: " + jwt);
+        return userRepository.findByUsername(username).orElse(null);
+    }
+
+
 }
 

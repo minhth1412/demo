@@ -35,6 +35,9 @@ public class User extends BaseEntity implements UserDetails {              // In
     @JoinColumn(name = "tokenId")
     private Token token;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private Set<Notify> notifications;
+
     // The rest fields
     // 1. Required non-null field
     @Column(name = "first_name", nullable = false, length = 20)

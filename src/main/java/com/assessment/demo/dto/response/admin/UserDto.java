@@ -3,6 +3,7 @@ package com.assessment.demo.dto.response.admin;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -21,5 +22,5 @@ public class UserDto {
     private Boolean isOnline;
     private String bio;
     private String image;
-    private Date dateOfBirth;
+    //private LocalDate dateOfBirth;
 }

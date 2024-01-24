@@ -4,6 +4,5 @@ package com.assessment.demo.entity.Enum;
 public enum PostStatus {     //DONE!
     PUBLIC,
     PRIVATE,
-    FRIEND_ONLY,
-    DELETED
+    FRIEND_ONLY
 }

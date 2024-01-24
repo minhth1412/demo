@@ -1,4 +1,4 @@
-package com.assessment.demo.dto;
+package com.assessment.demo.dto.response.post;
 
 import com.assessment.demo.entity.Enum.PostStatus;
 import lombok.AllArgsConstructor;

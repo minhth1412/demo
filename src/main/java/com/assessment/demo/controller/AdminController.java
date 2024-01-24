@@ -1,8 +1,6 @@
 package com.assessment.demo.controller;
 
-import com.assessment.demo.dto.PostDto;
-import com.assessment.demo.dto.request.UpdateUserInfoRequest;
-import com.assessment.demo.dto.response.JwtResponse;
+import com.assessment.demo.dto.response.post.PostDto;
 import com.assessment.demo.dto.response.admin.UserDto;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
@@ -22,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,7 +27,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequestMapping("/admin/")
 public class AdminController {
-
+    // Admin controller has author on these APIs:
+    // +
     private final PostService postService;
     private final UserService userService;
     private final JwtService jwtService;
@@ -66,41 +64,40 @@ public class AdminController {
                 jwtService.isTokenValid(jwt,user);
     }
 
-    private boolean isAdminSession(HttpServletRequest request) {
+    private boolean isNotAdminSession(HttpServletRequest request) {
         String jwt = extractJwtFromRequest(request);
         String username = jwtService.extractUsername(jwt);
-        return Objects.equals(username,adminName);
+        return !Objects.equals(username,adminName);
     }
 
-    @GetMapping("search/users")
+    // API search for all account
+    @GetMapping("search/all")
     public ResponseEntity<?> searchAllUsers(HttpServletRequest request) {
         try {
-            if (!isAdminSession(request)) {
+            if (isNotAdminSession(request)) {
                 throw new RuntimeException("Invalid action!");
             }
             List<User> searchResults = userRepository.findAll();
-//            List<UserDto> userDTOs = searchResults.stream()
-//                    .map(user -> new UserDto(user.getUserId(),
-//                            user.getUsername(),
-//                            user.getRole().getRoleName(),
-//                            user.getFirst_name(),
-//                            user.getLast_name(),
-//                            user.getEmail(),
-//                            user.getPassword(),
-//                            user.getStatus(),
-//                            user.getIsDeleted(),
-//                            user.getIsOnline(),
-//                            user.getBio(),
-//                            user.getImage(),
-//                            user.getDateOfBirth()))
-//                    .collect(Collectors.toList());
-
-
+            List<UserDto> userDTOs = searchResults.stream()
+                    .map(user -> new UserDto(user.getUserId(),
+                            user.getUsername(),
+                            user.getRole().getRoleName(),
+                            user.getFirst_name(),
+                            user.getLast_name(),
+                            user.getEmail(),
+                            user.getPassword(),
+                            user.getStatus(),
+                            user.getIsDeleted(),
+                            user.getIsOnline(),
+                            user.getBio(),
+                            user.getImage()
+//                            ,user.getDateOfBirth()
+                    ))
+                    .collect(Collectors.toList());
 
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             // Convert searchResults list to pretty-printed JSON
             String res = gson.toJson(userDTOs);
-            log.info("Go to here and finish");
             return ResponseEntity.status(HttpStatus.OK).body(res);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
@@ -109,26 +106,51 @@ public class AdminController {
         }
     }
 
-
+    @GetMapping("updateStatus")
+    public ResponseEntity<?> updateUserStatus(@RequestParam(name = "user") String username,
+                                              @RequestParam(name = "status") boolean status,
+                                              HttpServletRequest request) {
+        try {
+            if (isNotAdminSession(request)) {
+                throw new RuntimeException("Invalid action!");
+            }
+            User user = userRepository.findByUsername(username).orElseThrow(null);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User doesn't exist");
+            }
+            else if (user.getStatus() == status){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The status is already set up with " + status);
+            }
+            user.setStatus(status);
+            userRepository.save(user);
+            String res = (status) ? "can be used" : "is locked and can not be used!";
+            return ResponseEntity.status(HttpStatus.OK).body("The status of user "
+                    + username + " is updated! Now this user account " + res);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the search.");
+        }
+    }
 
 
     // Base on UserId on search api, we have that become input here
     // If the userId belongs to the current user, it returns all posts of that user.
     // Else, base on the relationship between the user with the owner userId, the posts will appear or not.
     // second problem will be deployed later.
-    @GetMapping("profile/{userId}")
-    public ResponseEntity<?> getHomepage(@PathVariable UUID userId,HttpServletRequest request) {
+    @GetMapping("{username}")
+    public ResponseEntity<?> getHomepage(@PathVariable String username,HttpServletRequest request) {
         // This hardcode will be fixed later for current user
-        User user = userRepository.findByUserId(userId).orElse(null);
+        User user = userRepository.findByUsername(username).orElse(null);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
 
         if (isTokenValid(request,user) && !user.getIsOnline())
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
-        List<Post> posts = postService.getAllPostsForCurrentUser(user.getUsername());
+        List<Post> Posts = postService.getAllPostsForCurrentUser(user.getUsername());
         // Convert Post entities to PostDto objects
-        List<PostDto> postDtos = posts.stream()
+        List<PostDto> postDtos = Posts.stream()
                 .map(post -> PostDto.builder()
                         .author(user.getUsername())
                         .authorImage(user.getImage())
@@ -153,23 +175,40 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.OK).body(res);
     }
 
+    @GetMapping("search")
+    public ResponseEntity<?> searchUserByName(@RequestParam(name = "user") String partialUsername) {
+        try {
+            List<User> searchResults = userService.findUsersByPartialUsername(partialUsername);
+            if (searchResults.isEmpty()) {
+                log.info("The result is empty and it is different with the change in sql");
+            }
+            List<UserDto> userDTOs = searchResults.stream()
+                    .map(user -> new UserDto(user.getUserId(),
+                            user.getUsername(),
+                            user.getRole().getRoleName(),
+                            user.getFirst_name(),
+                            user.getLast_name(),
+                            user.getEmail(),
+                            user.getPassword(),
+                            user.getStatus(),
+                            user.getIsDeleted(),
+                            user.getIsOnline(),
+                            user.getBio(),
+                            user.getImage()
+//                            ,user.getDateOfBirth()
+                    ))
+                    .collect(Collectors.toList());
 
-    @PostMapping("setting/{userId}")
-    public ResponseEntity<?> updateInfo(@PathVariable UUID userId,HttpServletRequest request,@RequestBody UpdateUserInfoRequest infoRequest) {
-        User user = userRepository.findByUserId(userId).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
-        if (isTokenValid(request,user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-//        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
-//        }
-        JwtResponse response = userService.updateUser(infoRequest,user);
-        log.info("Here comes the update");
-        if (response.getMsg() != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            // Convert searchResults list to pretty-printed JSON
+            String res = gson.toJson(userDTOs);
+            log.info("Done searching by partial username: {}", partialUsername);
+            return ResponseEntity.status(HttpStatus.OK).body(res);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the search.");
         }
-        return ResponseEntity.ok("Update information successfully! Redirect to homepage...");
-    }
 
+    }
 }

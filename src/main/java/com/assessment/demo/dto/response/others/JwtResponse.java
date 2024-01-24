@@ -1,11 +1,8 @@
-package com.assessment.demo.dto.response;
+package com.assessment.demo.dto.response.others;
 
 import com.assessment.demo.entity.User;
-import com.assessment.demo.entity.Role;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 

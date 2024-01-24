@@ -64,17 +64,24 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
         super();
     }
 
-    // This is for common use
+    /**
+     * Creates a Post object.
+     * The post timeStamp is set to the current date.
+     * The status default is PUBLIC.
+     *
+     * @param content The content of the post.
+     * @param title The title of the post, and this field is optional.
+     * @param image The image, this field can be development into situation: a post has many images (like Facebook) .
+     * @param location The optional location added by user.
+     * @param author The user who created the post
+     *
+     */
     public Post(String content,@Nullable String title, @Nullable String image,
                 @Nullable String location, User author) {
         // Generate these when calling new Post()
         super();
         this.postId = UUID.randomUUID();
         this.updateStatus(PostStatus.PUBLIC);
-//        // Validate parameters
-//        if (content == null || author == null) {
-//            throw new IllegalArgumentException("Content or author must not be null!");
-//        }
         this.content = content;
         this.title = title;
         this.author = author;
