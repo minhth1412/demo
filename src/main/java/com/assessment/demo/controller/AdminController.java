@@ -25,10 +25,15 @@ import java.util.stream.Collectors;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/admin/")
-public class AdminController extends baseAuthController{
-    // Admin controller has author on these APIs:
-    // +
+@RequestMapping("/admin")
+public class AdminController {
+    /**
+     * Admin controller has author on these APIs:<p>
+     * + /admin/search/all: return all the account that existed in db.
+     * + /admin/search?user={username}: return all the account that have username like the given
+     * + /admin/updateStatus?user={user}&status={statusValue}
+     */
+
     private final PostService postService;
     private final UserService userService;
     private final JwtService jwtService;
@@ -41,27 +46,23 @@ public class AdminController extends baseAuthController{
     private String currentUsername;
 
     /**
-     *  Check if token is valid, include:<p>
-     *     + user extract from the jwt exists<p>
-     *     + is token expires<p>
-     *     + is the user extract from the jwt equals with the user get from userId</p>
-     *  It will throw error if 1 of 3 things above does not match
+     * Check if token is valid, include:<p>
+     * + user extract from the jwt exists<p>
+     * + is token expires<p>
+     * + is the user extract from the jwt equals with the user get from userId</p>
+     * It will throw error if 1 of 3 things above does not match
      */
     private boolean isTokenValid(HttpServletRequest request,User user) {
-        return userRepository.findByUsername(getUsername(request)).isPresent() &&
+        return userRepository.findByUsername(jwtService.extractJwtFromRequest(request)).isPresent() &&
                 jwtService.isTokenValid(jwtService.extractJwtFromRequest(request),user);
     }
 
-    private String getUsername(HttpServletRequest request) {
-        return jwtService.extractUsername(jwtService.extractJwtFromRequest(request));
-    }
-
     private boolean isNotAdminSession(HttpServletRequest request) {
-        return !Objects.equals(getUsername(request),currentUsername);
+        return !Objects.equals(jwtService.extractJwtFromRequest(request),currentUsername);
     }
 
     // API search for all account
-    @GetMapping("search/all")
+    @GetMapping("/search/all")
     public ResponseEntity<?> searchAllUsers(HttpServletRequest request) {
         try {
             if (isNotAdminSession(request)) {
@@ -96,7 +97,7 @@ public class AdminController extends baseAuthController{
         }
     }
 
-    @GetMapping("updateStatus")
+    @GetMapping("/updateStatus")
     public ResponseEntity<?> updateUserStatus(@RequestParam(name = "user") String username,
                                               @RequestParam(name = "status") boolean status,
                                               HttpServletRequest request) {
@@ -107,8 +108,7 @@ public class AdminController extends baseAuthController{
             User user = userRepository.findByUsername(username).orElseThrow(null);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User doesn't exist");
-            }
-            else if (user.getStatus() == status){
+            } else if (user.getStatus() == status) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The status is already set up with " + status);
             }
             user.setStatus(status);
@@ -128,16 +128,18 @@ public class AdminController extends baseAuthController{
     // If the userId belongs to the current user, it returns all posts of that user.
     // Else, base on the relationship between the user with the owner userId, the posts will appear or not.
     // second problem will be deployed later.
-    @GetMapping("{username}")
+    @GetMapping("/{username}")
     public ResponseEntity<?> getHomepage(@PathVariable String username,HttpServletRequest request) {
         // This hardcode will be fixed later for current user
         User user = userRepository.findByUsername(username).orElse(null);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
 
-        if (isTokenValid(request,user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-
+        if (isTokenValid(request,user))
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!?");
+        if (!user.getIsOnline()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Need to login first");
+        }
         List<Post> Posts = postService.getAllPostsForCurrentUser(user.getUsername());
         // Convert Post entities to PostDto objects
         List<PostDto> postDtos = Posts.stream()
@@ -165,7 +167,7 @@ public class AdminController extends baseAuthController{
         return ResponseEntity.status(HttpStatus.OK).body(res);
     }
 
-    @GetMapping("search")
+    @GetMapping("/search")
     public ResponseEntity<?> searchUserByName(@RequestParam(name = "user") String partialUsername) {
         try {
             List<User> searchResults = userService.findUsersByPartialUsername(partialUsername);
@@ -192,7 +194,7 @@ public class AdminController extends baseAuthController{
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             // Convert searchResults list to pretty-printed JSON
             String res = gson.toJson(userDTOs);
-            log.info("Done searching by partial username: {}", partialUsername);
+            log.info("Done searching by partial username: {}",partialUsername);
             return ResponseEntity.status(HttpStatus.OK).body(res);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());

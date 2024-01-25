@@ -23,10 +23,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
+import javax.security.auth.login.AccountLockedException;
 import java.util.Date;
 import java.util.Objects;
+
+import static com.assessment.demo.util.EmailUtils.isEmail;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +49,8 @@ public class AuthServiceImpl implements AuthService {
     // Regex for password requirements
     private static final String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$";
 
-    public JwtResponse signup(SignupRequest signupRequest) {
+    @Override
+    public UsualResponse signup(SignupRequest signupRequest) {
         try {
             String err = getErrorFromSignup(signupRequest,userRepository);
 
@@ -58,114 +61,84 @@ public class AuthServiceImpl implements AuthService {
                     signupRequest.getEmail(),
                     signupRequest.getFirstname(),
                     signupRequest.getLastname(),
+                    // A new user has default USER role, it can be edited in db by ADMIN.
                     new Role(roleUserId,roleUserName),
                     signupRequest.getBio(),
                     signupRequest.getImage(),
                     signupRequest.getDateOfBirth(),
                     false);
-            // A new user signing up has default USER role,
-            // it can be edited later by whom has ADMIN role.
 
-            log.info("Your account is created successfully! Return to the login page...");
+            String msg = "Your account is created successfully! Return to the login page...";
+            log.info(msg);
             userRepository.save(user);
-
-            return JwtResponse.fromUser(user,false);
+            return UsualResponse.success(JwtResponse.fromUserWithoutToken(user,msg));
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
-            return JwtResponse.msg(e.getMessage());
+            return UsualResponse.error(HttpStatus.BAD_REQUEST,e.getMessage());
         } catch (Exception e) {
             log.error("Error while processing user sign up with message: " + e.getMessage());
-            return JwtResponse.msg(e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
         }
     }
 
-    private static String getErrorFromSignup(SignupRequest signupRequest,UserRepository userRepository) {
-        String password = signupRequest.getPassword();
-        String repassword = signupRequest.getRepassword();
-        String msg = getErrorFromPassword(password, repassword);
-        if (userRepository.existsByUsername(signupRequest.getUsername()))
-            msg = "Username existed";
-        else if (userRepository.existsByEmail(signupRequest.getEmail()))
-            msg = "Email already existed";
-        return msg;
-    }
-
-    private static String getErrorFromPassword(String password, String repassword) {
-        String msg = null;
-        if (password == null || password.trim().isEmpty())
-            msg = "Password must not be empty";
-        else if (!password.equals(repassword))
-            msg = "Password and repassword do not match";
-        else if (password.length() < 4)
-            msg = "Password must be at least 5 characters long";
-        else if (!password.matches(passwordRegex))
-            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
-        return msg;
-    }
-
-    public JwtResponse login(LoginRequest loginRequest) {
+    @Override
+    public UsualResponse login(LoginRequest loginRequest) {
         try {
             // Check username and password
             User user = userRepository.findByUsername(loginRequest.getUsername())
                     .orElseThrow(() -> new RuntimeException("Invalid username or password"));
 
-            if (!passwordEncoder.matches(loginRequest.getPassword(),user.getPassword())) {
+            if (!passwordEncoder.matches(loginRequest.getPassword(),user.getPassword()))
                 throw new RuntimeException("Invalid username or password");
-            }
-            // Check online status
-            if (user.getIsOnline())
-                return JwtResponse.msg("You are already logged in!");
+            else if (!user.getStatus())
+                throw new AccountLockedException("Your account is locked and can not be used right now!");
+            else if (user.getIsOnline())
+                return UsualResponse.error(HttpStatus.BAD_REQUEST, "You are already logged in!");
             else
                 user.setIsOnline(true);
 
-            Token userToken;
-            String tk = jwtService.generateToken(user,false);
-            String refreshTk = jwtService.generateToken(user,true);
-            Date tkTime = jwtService.extractExpiration(tk);
-            Date refreshTkTime = jwtService.extractExpiration(refreshTk);
-            if (user.getToken() == null) {
-                // Create tokens for new user's login
-                userToken = new Token(tk,refreshTk,tkTime,refreshTkTime);
-            } else {
-                userToken = user.getToken();
-                // Update expiration time for tokens of user logged in
-                Date current_time = new Date();
-                if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0) {
-                    userToken.updateToken(tk,refreshTk,tkTime,refreshTkTime);
-                }
-            }
-            userToken.setUser(user);
-            user.setToken(userToken);
-            tokenRepository.save(userToken);
-            userRepository.save(user);
-            log.info("Login successfully!");
+            // After authentication phase, update user token in database
+            updateTokenForLoggingInUser(user);
+
+            String msg = "Login successfully!";
+            log.info(msg);
             // return a response with public information of current user
-            return JwtResponse.fromUser(user);
+            return UsualResponse.success(JwtResponse.fromUserWithToken(user,msg));
+        } catch (AccountLockedException e) {
+            log.error(e.getMessage());
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Error while processing user login with message: " + e.getMessage());
-            return JwtResponse.msg(e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
-    public JwtResponse refreshToken(LoginRequest loginRequest,HttpServletRequest request) {
-        String authorizationHeader = request.getHeader("Authorization");
+    @Override
+    public UsualResponse refreshToken(HttpServletRequest request) {
+        try {
+            String msg = "Token refreshes successfully!";
+            // Extract username from the input token
+            String username = jwtService.userFromJwtInRequest(request);
+            // Create user entity from found username
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Invalid token!"));
 
-        if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith("Bearer ")) {
-            String errorMessage = "The token is not the Bearer token format!";
-            log.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            if (jwtService.isTokenInRequestValid(request,user)) {
+                jwtService.refreshToken(user, true);
+                log.info(msg);
+                return UsualResponse.success(JwtResponse.fromUserWithToken(user,msg));
+            }
+            msg = "The token is not refreshed!";
+            log.error(msg);
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,msg);
+        } catch (InvalidJwtException e) {
+            log.info("The user token is expired: {}", e.getMessage());
+            return UsualResponse.error(HttpStatus.BAD_REQUEST,e.getMessage());
+
+        } catch (Exception e) {
+            log.error("Error while processing refresh token with message: " + e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
         }
-        // extract username from the claim subject of the refresh token
-        String jwt = authorizationHeader.substring(7).trim();
-        String username = jwtService.extractUsername(jwt);
-        User user = userRepository.findByUsername(username).orElseThrow();  //~ Throw what exception?
-        if (jwtService.isTokenValid(jwt,user)) {
-            jwtService.refreshToken(user);
-            log.info("Token refreshes successfully!");
-            return JwtResponse.fromUser(user);
-        }
-        log.error("The token is not refreshed!");
-        return null;
     }
 
     @Override
@@ -195,23 +168,19 @@ public class AuthServiceImpl implements AuthService {
                 msg = "Bad credentials!";
             else if (!Objects.equals(resetPasswordRequest.getOldPassword(),user.getPassword()))
                 msg = "Wrong old password!";
-            else if (resetPasswordRequest.getNewPassword().length() < 4) {
-                msg = "";
-            } else if (!resetPasswordRequest.getNewPassword().matches(passwordRegex))
-                msg = "Password must have at least one uppercase letter, one lowercase letter and one digit, one special character, and a minimum length of 5 characters";
-            else if (!Objects.equals(resetPasswordRequest.getNewPassword(), resetPasswordRequest.getConfirmNewPassword()))
-                msg = "Confirm password does not match with the new one!";
+            else
+                msg = getErrorFromPassword(password,repassword);
             HttpStatus status = HttpStatus.BAD_REQUEST;
             if (msg == null) {
                 status = HttpStatus.OK;
                 msg = "Your password is changed!";
             }
-            return UsualResponse.builder().exceptionType(status).message(msg).build();
+            return UsualResponse.builder().status(status).message(msg).build();
         } catch (InvalidJwtException e) {
             log.error(e.getMessage());
-            return UsualResponse.builder().exceptionType(HttpStatus.UNAUTHORIZED).message("Invalid token!").build();
+            return UsualResponse.builder().status(HttpStatus.UNAUTHORIZED).message("Invalid token!").build();
         } catch (Exception e) {
-            return UsualResponse.init(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred: " + e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -229,6 +198,58 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
+    private static String getErrorFromSignup(SignupRequest signupRequest,UserRepository userRepository) {
+        String password = signupRequest.getPassword();
+        String repassword = signupRequest.getRepassword();
+        String username = signupRequest.getUsername();
+        String email = signupRequest.getEmail();
+        String msg = getErrorFromPassword(password,repassword);
+        if (username == null || email == null)
+            msg = "Lack information";
+        else if (userRepository.existsByUsername(username))
+            msg = "Username existed";
+        else if (userRepository.existsByEmail(email))
+            msg = "Email already existed";
+        else if (!isEmail(email))
+            msg = "Email is in wrong type";
+        return msg;
+    }
 
+    private static String getErrorFromPassword(String password,String repassword) {
+        String msg = null;
+        if (password == null || password.trim().isEmpty())
+            msg = "Password must not be empty";
+        else if (repassword == null || repassword.trim().isEmpty())
+            msg = "Repassword must not be empty";
+        else if (!password.equals(repassword))
+            msg = "Password and repassword do not match";
+        else if (password.length() < 4)
+            msg = "Password must be at least 5 characters long";
+        else if (!password.matches(passwordRegex))
+            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
+        return msg;
+    }
+
+    private void updateTokenForLoggingInUser(User user) {
+        Token userToken;
+        String tk = jwtService.generateToken(user,false);
+        String refreshTk = jwtService.generateToken(user,true);
+        Date tkTime = jwtService.extractExpiration(tk);
+        Date refreshTkTime = jwtService.extractExpiration(refreshTk);
+        if (user.getToken() == null)
+            // Create tokens for new user's login
+            userToken = new Token(tk,refreshTk,tkTime,refreshTkTime);
+        else {
+            userToken = user.getToken();
+            // Update expiration time for tokens of user logged in
+            Date current_time = new Date();
+            if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0)
+                userToken.updateToken(tk,refreshTk,tkTime,refreshTkTime);
+        }
+        userToken.setUser(user);
+        user.setToken(userToken);
+        tokenRepository.save(userToken);
+        userRepository.save(user);
+    }
 }
 

@@ -1,5 +1,6 @@
 package com.assessment.demo.controller;
 
+import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.dto.response.post.PostDto;
 import com.assessment.demo.dto.response.user.UserDto;
 import com.assessment.demo.dto.request.PostRequest;
@@ -25,10 +26,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.assessment.demo.controller.BaseController.responseEntity;
+
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/user/")
+@RequestMapping("/user")
 public class UserController {
     private final PostService postService;
     private final UserService userService;
@@ -36,37 +39,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
 
-    private String extractJwtFromRequest(HttpServletRequest request) {
-        final String authHeader = request.getHeader("Authorization");
-        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) ||
-                !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
-            String errorMessage = "The token is not in the Bearer token format!";
-            log.info(errorMessage);
-            throw new IllegalArgumentException(errorMessage);
-        }
-
-        // Extract and return the token from the Authorization header
-        return authHeader.substring(7);
-    }
-
-    // Check if token is valid, include:
-    //  + user extract from the jwt exists
-    //  + is token expires
-    //  + is the user extract from the jwt equals with the user get from userId
-    private boolean isTokenValid(HttpServletRequest request,User user) {
-        String jwt = extractJwtFromRequest(request);
-        String username = jwtService.extractUsername(jwt);
-
-        return userRepository.findByUsername(username).isEmpty() &&
-                jwtService.isTokenValid(jwt,user);
-    }
-
-    private String userFromToken(HttpServletRequest request) {
-        String jwt = extractJwtFromRequest(request);
-        return jwtService.extractUsername(jwt);
-    }
-
-    @GetMapping("search")       // Looks like this: /user/search?query=...&page=1&pageSize=10&sort=username&order=asc
+    @GetMapping("/search")       // Looks like this: /user/search?query=...&page=1&pageSize=10&sort=username&order=asc
     public ResponseEntity<?> searchUsers(@RequestParam(name = "query") String query,
                                          @RequestParam(name = "page", defaultValue = "0") int page,
                                          @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
@@ -74,7 +47,7 @@ public class UserController {
                                          @RequestParam(name = "order", defaultValue = "asc") String order,
                                          HttpServletRequest request) {
         try {
-            String jwt = extractJwtFromRequest(request);
+            String jwt = jwtService.extractJwtFromRequest(request);
             String currentUser = jwtService.extractUsername(jwt);
             User user = userRepository.findByUsername(currentUser).orElse(null);
 
@@ -86,7 +59,7 @@ public class UserController {
             // For simplicity, let's assume UserDTO is a DTO class representing a simplified User entity
             List<UserDto> userDTOs = searchResults.stream()
                     .map(userX -> new UserDto(userX.getUsername(),userX.getUserId()))
-                    .collect(Collectors.toList());
+                    .toList();
             List<User> users = userService.searchUsers(query, page, pageSize, sort, order);
 
             // Calculate total pages based on the total users and pageSize
@@ -109,73 +82,80 @@ public class UserController {
     // If the userId belongs to the current user, it returns all posts of that user.
     // Else, base on the relationship between the user with the owner userId, the posts will appear or not.
     // second problem will be deployed later.
-    @GetMapping("{username}")
+    @GetMapping("/{username}")
     public ResponseEntity<?> getHomepage(@PathVariable String username,HttpServletRequest request) {
-        // This hardcode will be fixed later for current user
         User user = userRepository.findByUsername(username).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
+        UsualResponse response = checkUserAuthentication(request,user);
 
-        if (isTokenValid(request,user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
+        if (response == null) {
+            assert user != null;
+            List<Post> posts = postService.getAllPostsForCurrentUser(user.getUsername());
+            // Convert Post entities to PostDto objects
+            List<PostDto> postDtos = posts.stream()
+                    .map(post -> PostDto.builder()
+                            .author(user.getUsername())
+                            .authorImage(user.getImage())
+                            .createdAt(post.getCreatedAt())
+                            .title(post.getTitle())
+                            .content(post.getContent())
+                            .interactCount(post.getInteracts().size())
+                            .commentCount(post.getComments().size())
+                            //.sharedCount(post.getSharedCount())
+                            .status(post.getStatus())
+                            .updatedAt(post.getUpdatedAt())
+                            .location(post.getLocation())
+                            .build())
+                    .collect(Collectors.toList());
 
-        List<Post> posts = postService.getAllPostsForCurrentUser(user.getUsername());
-        // Convert Post entities to PostDto objects
-        List<PostDto> postDtos = posts.stream()
-                .map(post -> PostDto.builder()
-                        .author(user.getUsername())
-                        .authorImage(user.getImage())
-                        .createdAt(post.getCreatedAt())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .interactCount(post.getInteracts().size())
-                        .commentCount(post.getComments().size())
-                        //.sharedCount(post.getSharedCount())
-                        .status(post.getStatus())
-                        .updatedAt(post.getUpdatedAt())
-                        .location(post.getLocation())
-                        .build())
-                .collect(Collectors.toList());
-
-        // Create a Gson instance with pretty-printing enabled
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-        // Convert PostDto list to pretty-printed JSON
-        String res = gson.toJson(postDtos);
-
-        return ResponseEntity.status(HttpStatus.OK).body(res);
+            // Create a Gson instance with pretty-printing enabled
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            // Convert PostDto list to pretty-printed JSON
+            String res = gson.toJson(postDtos);
+            response = UsualResponse.success(res);
+        }
+        return ResponseEntity.status(response.getStatus()).body(response.getMessage());
     }
 
+    private UsualResponse checkUserAuthentication(HttpServletRequest request,User user) {
+        log.info("go to here first");
+        if (user == null)
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, "This path does not existed!");
+        else if (!jwtService.isTokenValid(jwtService.extractJwtFromRequest(request),user))
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, "Invalid token!");
+        else if (!Objects.equals(user.getUsername(),jwtService.userFromJwtInRequest(request)))
+            return UsualResponse.error(HttpStatus.FORBIDDEN,"You are not allowed to do this!");
+        else if (!user.getIsOnline())
+            return UsualResponse.error(HttpStatus.FORBIDDEN,"You need to login first!");
+        else if (!user.isAccountNonExpired()) {
+            return UsualResponse.error(HttpStatus.FORBIDDEN, "Your account is being locked!");
+        }
+        return null;
+    }
 
-    @PostMapping("setting/{userId}")
+    @PostMapping("/setting/{userId}")
     public ResponseEntity<?> updateInfo(@PathVariable UUID userId,HttpServletRequest request,@RequestBody UpdateUserInfoRequest infoRequest) {
         User user = userRepository.findByUserId(userId).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
-        if (isTokenValid(request,user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
+        UsualResponse response = checkUserAuthentication(request,user);
+        if (response == null) {
+            JwtResponse responseData = userService.updateUser(infoRequest,user);
+            if (responseData.getMsg() == null) {
+                responseData.setMsg("Update information successfully! Redirect to homepage...");
+                response = UsualResponse.success(responseData);
+            }
+            else
+                response = UsualResponse.error(HttpStatus.BAD_REQUEST,responseData.getMsg());
         }
-        JwtResponse response = userService.updateUser(infoRequest,user);
-        log.info("Here comes the update");
-        if (response.getMsg() != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
-        }
-        return ResponseEntity.ok("Update information successfully! Redirect to homepage...");
+        log.info("API calling to update user information ends here!");
+        return responseEntity(response);
     }
 
-    @PostMapping("{userId}/create_new_post")
+    @PostMapping("/{userId}/create_new_post")
     public ResponseEntity<?> createNewPost(@PathVariable UUID userId,HttpServletRequest request,@RequestBody PostRequest postRequest) {
         User user = userRepository.findByUserId(userId).orElse(null);
-        if (user == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This path does not existed!");
-        if (isTokenValid(request,user) && !user.getIsOnline())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-        if (!Objects.equals(user.getUsername(),userFromToken(request))) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You are not allowed to do this!");
+        UsualResponse response = checkUserAuthentication(request,user);
+        if (response == null) {
+            postService.createNewPost(postRequest, user);
         }
-
         Post post = new Post(postRequest.getContent(),postRequest.getTitle(),
                 postRequest.getImage(),postRequest.getLocation(),user);
 

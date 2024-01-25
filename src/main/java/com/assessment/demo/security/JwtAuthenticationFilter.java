@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -63,7 +64,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 7 is the length of the first path "Bearer ", remove that path and save into jwt variables
         jwt = authHeader.substring(7);         // We get the token on the header of request after this
-
         username = jwtService.extractUsername(jwt);        // Extract username from token's claims
 
         // Check the username is empty or not
@@ -91,6 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 //                        userDetails,null,userDetails.getAuthorities());
 //                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 //                SecurityContextHolder.getContext().setAuthentication(token);
+
                 // jwtService.updateExpiredToken(jwt, true);
                 // jwtService.updateExpiredToken(jwt, false);
 //            }

@@ -83,7 +83,7 @@ public class User extends BaseEntity implements UserDetails {              // In
     // Constructors
     public User() {
         // Generate a new UUID for the user during object creation
-        super();    // call created_at and updatedAt initialization in the super class
+        super();    // call createdAt and updatedAt initialization in the super class
         this.userId = UUID.randomUUID();
     }
 
@@ -149,5 +149,9 @@ public class User extends BaseEntity implements UserDetails {              // In
     @Override
     public boolean isEnabled() {
         return !this.isDeleted;
+    }
+
+    public String getRoleName() {
+        return this.getRole().getRoleName();
     }
 }

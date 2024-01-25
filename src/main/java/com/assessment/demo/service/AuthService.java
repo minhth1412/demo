@@ -9,11 +9,11 @@ import com.assessment.demo.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface AuthService {
-    public JwtResponse signup(SignupRequest signupRequest);
+    public UsualResponse signup(SignupRequest signupRequest);
 
-    public JwtResponse login(LoginRequest loginRequest);
+    public UsualResponse login(LoginRequest loginRequest);
 
-    public JwtResponse refreshToken(LoginRequest request, HttpServletRequest httpServletRequest);
+    public UsualResponse refreshToken(HttpServletRequest httpServletRequest);
 
     JwtResponse logout(HttpServletRequest request);
 

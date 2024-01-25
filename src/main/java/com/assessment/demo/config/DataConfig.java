@@ -10,10 +10,14 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @RequiredArgsConstructor
 public class DataConfig {
-
+    /** Service used in this configuration class:
+     */
     private final RoleService roleService;
     private final UserService userService;
 
+    /**
+     * values use to create default roles in database
+     */
     @Value("${spring.role_admin.id}")
     private int role1_id;
 
@@ -26,9 +30,11 @@ public class DataConfig {
     @Value("${spring.role_user.name}")
     private String role2_name;
 
-    // This will be executed after the bean has been constructed and
-    //  the dependencies have been injected. This ensures that the roles
-    //  are created when the application starts.
+    /**
+     *  This method will be executed after the bean has been constructed and
+     *       the dependencies have been injected using {@link PostConstruct}. This ensures that the roles
+     *       are created when the application starts.
+     */
     @PostConstruct
     public void createIfNotExists() {
         // Create 2 roles default if not existed

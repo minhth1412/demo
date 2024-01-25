@@ -20,4 +20,9 @@ public interface UserService {
     List<User> searchUsers(String query,int page,int pageSize,String sort,String order);
 
     int getTotalUsers(String query);
+
+    public String getUserRole(String username);
+
+    // Custom method to check if the user has any of the specified role
+    public boolean hasRole(String username, String role);
 }

@@ -5,6 +5,7 @@ import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
+import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -40,6 +43,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleService roleService;
+    private final JwtService jwtService;
 
     public void createAdminAccountIfNotExists(int roleId) {
         Role adminRole = roleService.getRoleById(roleId);
@@ -83,7 +87,22 @@ public class UserServiceImpl implements UserService {
         //  but now just using this change
         user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
                 infoRequest.getEmail(),infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
+        jwtService.refreshToken(user,false);
+        // ~~ Update token (claims username) using methods that already set up.
         userRepository.save(user);
-        return JwtResponse.fromUser(user);
+        String msg = "Update information successfully!";
+        log.info(msg);
+        return JwtResponse.fromUserWithToken(user, msg);
+    }
+    public String getUserRole(String username) {
+        // Implement the logic to fetch role from the user entity
+        // Return a role name associated with the user
+        return userRepository.findByUsername(username).map(User::getRoleName).orElse("USER");   // Default role
+    }
+
+    // Custom method to check if the user has any of the specified role
+    public boolean hasRole(String username, String role) {
+        String userRole = getUserRole(username);
+        return userRole.equals(role);
     }
 }

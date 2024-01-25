@@ -28,15 +28,8 @@ public class AuthController {
 
     @PostMapping("signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        JwtResponse response = authService.signup(signupRequest);
-        if (response.getMsg() != null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
-        }
-        if (!isEmail(signupRequest.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is invalid");
-        }
-        response.setMsg("Sign up successfully! Please return to the login page and sign in!");
-        return ResponseEntity.ok(response);
+        UsualResponse response = authService.signup(signupRequest);
+        return responseEntity(response);
     }
 
     @PostMapping("login")
@@ -44,16 +37,12 @@ public class AuthController {
             @RequestBody LoginRequest loginRequest)
     {
         // If no errors, return 200 with login method from authService
-        JwtResponse response = authService.login(loginRequest);
-        if (response.getMsg() != null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
-        }
-        response.setMsg("Login successfully!");
-        return ResponseEntity.ok(response);
+        UsualResponse response = authService.login(loginRequest);
+        return responseEntity(response);
     }
 
     @PostMapping("logout")
-    public ResponseEntity<?> logout(HttpServletRequest request){ // HttpServletRequest request) {
+    public ResponseEntity<?> logout(HttpServletRequest request){
         // Explicitly invalidate the current user's authentication token
         JwtResponse response = authService.logout(request);
         if (response.getMsg() != null){
@@ -63,21 +52,24 @@ public class AuthController {
     }
 
     // API that refresh the present token due to expired
-    @PostMapping("refresh_token")
-    public ResponseEntity<?> refresh(@RequestBody LoginRequest req, HttpServletRequest request) {
-        String x = request.getQueryString();
-        log.info(x);
-        return ResponseEntity.ok(authService.refreshToken(req, request));
+    @GetMapping("refresh_token")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
+        UsualResponse response = authService.refreshToken(request);
+        return responseEntity(response);
     }
 
-    // CREATE CHANGE PASSWORD VS FORGET PASSWORD HERE
     @PostMapping("reset_password")
     public ResponseEntity<?> resetPassword(@RequestBody resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
-        UsualResponse usualResponse = authService.resetPassword(resetPasswordRequest,request);
-        return ResponseEntity.status(usualResponse.getExceptionType()).body(usualResponse.getMessage());
+        UsualResponse response = authService.resetPassword(resetPasswordRequest,request);
+        return responseEntity(response);
     }
 
-   /* @PostMapping("forgot_password")
-    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest,HttpServletRequest request) {
-    }*/
+    private ResponseEntity<?> responseEntity(UsualResponse response) {
+        if (response.getData() == null)
+            return ResponseEntity.status(response.getStatus()).body(response.getMessage());
+        else
+            return ResponseEntity.status(response.getStatus()).body(response.getData());
+    }
+
+    // ~Forgot password method: need 3rd party to handle, so this can be deployed later
 }

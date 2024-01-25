@@ -2,6 +2,7 @@ package com.assessment.demo.service.impl;
 
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
+import com.assessment.demo.exception.InvalidJwtException;
 import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.service.JwtService;
 import io.jsonwebtoken.*;
@@ -38,7 +39,7 @@ public class JwtServiceImpl implements JwtService {
                 !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
             String errorMessage = "The token is not in the Bearer token format!";
             log.info(errorMessage);
-            throw new IllegalArgumentException(errorMessage);
+            throw new InvalidJwtException(errorMessage);
         }
         // Extract and return the token from the Authorization header
         return authHeader.substring(7);
@@ -93,28 +94,32 @@ public class JwtServiceImpl implements JwtService {
                 .getBody();
     }
 
+    @Override
     // Extract the username claim from the JWT, it is placed at the subject of the token
     public String extractUsername(String token) {
         return extractClaim(token,Claims::getSubject);
     }
 
+    @Override
     public Date extractExpiration(String token) {
         return extractClaim(token,Claims::getExpiration);
     }
 
     // Check if the token is valid by comparing the username and verifying expiration
+    @Override
     public boolean isTokenValid(String token,UserDetails userDetails) {
         try {
             Claims claims = extractAllClaims(token);
-            final String username = extractUsername(token);
-            if (!username.equals(userDetails.getUsername())) {
+            String username = extractUsername(token);
+            if (!username.equals(userDetails.getUsername())){
+                log.info("This is the place that username {} and user from token {} did not match", username, userDetails.getUsername());
                 throw new RuntimeException("Invalid token!");
             }
             // Check if the extracted username matches the username from UserDetails and the token is not expired
-            if (isTokenExpired(token)) {
+            else if (isTokenExpired(token))
                 throw new ExpiredJwtException(null, claims, "JWT token is expired! Please login again.");
-            }
-            return true;
+            else
+                return true;
 
         } catch (SignatureException e) {
             log.error("Invalid JWT signature: {}", e.getMessage());
@@ -133,9 +138,10 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public void refreshToken(User user) {
+    public void refreshToken(User user, Boolean isResetTime) {
         String token = generateToken(user,false);
         String refreshToken = generateToken(user,true);
+        // Extract the time expired of tokens
         Date tkTime = extractExpiration(token);
         Date refreshTkTime = extractExpiration(refreshToken);
 
@@ -144,6 +150,10 @@ public class JwtServiceImpl implements JwtService {
             oldToken.updateToken(token,refreshToken,tkTime,refreshTkTime);
         } else {
             throw new RuntimeException("There is no token to refresh!");
+        }
+        if (isResetTime) {
+            updateExpiredToken(oldToken.getCompressedTokenData(),false);
+            updateExpiredToken(oldToken.getCompressedRefreshTokenData(),true);
         }
         // Save changes
         tokenRepository.save(oldToken);
@@ -164,8 +174,24 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
+    @Override
     // Check if the token is expired by comparing the expiration time with the current time
     public boolean isTokenExpired(String token) {
         return extractClaim(token,Claims::getExpiration).before(new Date());
+    }
+
+    // Check if token is valid, include:
+    //  + user extract from the jwt exists
+    //  + is token expires
+    //  + is the user extract from the jwt equals with the user get from userId
+    @Override
+    public boolean isTokenInRequestValid(HttpServletRequest request,User user) {
+        return isTokenValid(extractJwtFromRequest(request),user);
+    }
+
+    @Override
+    public String userFromJwtInRequest(HttpServletRequest request) {
+        String jwt = extractJwtFromRequest(request);
+        return extractUsername(jwt);
     }
 }
