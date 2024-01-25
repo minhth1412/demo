@@ -7,6 +7,7 @@ import com.assessment.demo.service.JwtService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +31,18 @@ public class JwtServiceImpl implements JwtService {
     private int refreshTokenLifespan;
 
     private final TokenRepository tokenRepository;
+
+    public String extractJwtFromRequest(HttpServletRequest request) {
+        final String authHeader = request.getHeader("Authorization");
+        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) ||
+                !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
+            String errorMessage = "The token is not in the Bearer token format!";
+            log.info(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
+        // Extract and return the token from the Authorization header
+        return authHeader.substring(7);
+    }
 
     public String generateToken(UserDetails userDetails,boolean isRefresh) {
         Map<String, Object> Claims = new HashMap<>();

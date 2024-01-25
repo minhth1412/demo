@@ -21,7 +21,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
-    // Define needed variables
+    /**
+     * The variables that contain the admin account setting up.
+     * <p>
+     * Additionally, it is marked with {@link Value} to load the values defined in
+     * application.yml. Missing this file will cause undefined error.
+     */
     @Value("${spring.account.admin.username}")
     String username;
     @Value("${spring.account.admin.password}")

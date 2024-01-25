@@ -1,4 +1,5 @@
 package com.assessment.demo.controller;
 
-public interface baseAuthController {
+public abstract class baseAuthController {
+
 }

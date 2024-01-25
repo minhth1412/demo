@@ -49,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
 
     public JwtResponse signup(SignupRequest signupRequest) {
         try {
-            String err = getError(signupRequest,userRepository);
+            String err = getErrorFromSignup(signupRequest,userRepository);
 
             if (err != null)
                 throw new ValidationException(err);
@@ -79,20 +79,27 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private static String getError(SignupRequest signupRequest,UserRepository userRepository) {
-        String msg = null;
-        if (signupRequest.getPassword() == null || signupRequest.getPassword().trim().isEmpty())
-            msg = "Password must not be empty";
-        else if (!signupRequest.getPassword().equals(signupRequest.getRepassword()))
-            msg = "Password and repassword do not match";
-        else if (signupRequest.getPassword().length() < 4)
-            msg = "Password must be at least 5 characters long";
-        else if (userRepository.existsByUsername(signupRequest.getUsername()))
+    private static String getErrorFromSignup(SignupRequest signupRequest,UserRepository userRepository) {
+        String password = signupRequest.getPassword();
+        String repassword = signupRequest.getRepassword();
+        String msg = getErrorFromPassword(password, repassword);
+        if (userRepository.existsByUsername(signupRequest.getUsername()))
             msg = "Username existed";
         else if (userRepository.existsByEmail(signupRequest.getEmail()))
             msg = "Email already existed";
-        else if (!signupRequest.getPassword().matches(passwordRegex))
-            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
+        return msg;
+    }
+
+    private static String getErrorFromPassword(String password, String repassword) {
+        String msg = null;
+        if (password == null || password.trim().isEmpty())
+            msg = "Password must not be empty";
+        else if (!password.equals(repassword))
+            msg = "Password and repassword do not match";
+        else if (password.length() < 4)
+            msg = "Password must be at least 5 characters long";
+        else if (!password.matches(passwordRegex))
+            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
         return msg;
     }
 
@@ -181,15 +188,19 @@ public class AuthServiceImpl implements AuthService {
     public UsualResponse resetPassword(resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
         String msg = null;
         try {
+            String password = resetPasswordRequest.getNewPassword();
+            String repassword = resetPasswordRequest.getConfirmNewPassword();
             User user = extractUserFromRequest(request);
             if (user == null)
                 msg = "Bad credentials!";
             else if (!Objects.equals(resetPasswordRequest.getOldPassword(),user.getPassword()))
                 msg = "Wrong old password!";
-            else if (!Objects.equals(resetPasswordRequest.getNewPassword(),resetPasswordRequest.getConfirmNewPassword()))
+            else if (resetPasswordRequest.getNewPassword().length() < 4) {
+                msg = "";
+            } else if (!resetPasswordRequest.getNewPassword().matches(passwordRegex))
+                msg = "Password must have at least one uppercase letter, one lowercase letter and one digit, one special character, and a minimum length of 5 characters";
+            else if (!Objects.equals(resetPasswordRequest.getNewPassword(), resetPasswordRequest.getConfirmNewPassword()))
                 msg = "Confirm password does not match with the new one!";
-            else if (!resetPasswordRequest.getNewPassword().matches(passwordRegex))
-                msg = "Password must have at least one uppercase letter, one lowercase letter, one digit, one special character, and a minimum length of 5 characters";
             HttpStatus status = HttpStatus.BAD_REQUEST;
             if (msg == null) {
                 status = HttpStatus.OK;

@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 @RequestMapping("/admin/")
-public class AdminController {
+public class AdminController extends baseAuthController{
     // Admin controller has author on these APIs:
     // +
     private final PostService postService;
@@ -38,36 +38,26 @@ public class AdminController {
     private String roleName;
 
     @Value("${spring.account.admin.username}")
-    private String adminName;
+    private String currentUsername;
 
-    private String extractJwtFromRequest(HttpServletRequest request) {
-        final String authHeader = request.getHeader("Authorization");
-        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) ||
-                !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
-            String errorMessage = "The token is not in the Bearer token format!";
-            log.info(errorMessage);
-            throw new IllegalArgumentException(errorMessage);
-        }
-        // Extract and return the token from the Authorization header
-        return authHeader.substring(7);
+    /**
+     *  Check if token is valid, include:<p>
+     *     + user extract from the jwt exists<p>
+     *     + is token expires<p>
+     *     + is the user extract from the jwt equals with the user get from userId</p>
+     *  It will throw error if 1 of 3 things above does not match
+     */
+    private boolean isTokenValid(HttpServletRequest request,User user) {
+        return userRepository.findByUsername(getUsername(request)).isPresent() &&
+                jwtService.isTokenValid(jwtService.extractJwtFromRequest(request),user);
     }
 
-    // Check if token is valid, include:
-    //  + user extract from the jwt exists
-    //  + is token expires
-    //  + is the user extract from the jwt equals with the user get from userId
-    // it will throw error if 1 of 3 things above does not match
-    private boolean isTokenValid(HttpServletRequest request,User user) {
-        String jwt = extractJwtFromRequest(request);
-        String username = jwtService.extractUsername(jwt);
-        return userRepository.findByUsername(username).isEmpty() &&
-                jwtService.isTokenValid(jwt,user);
+    private String getUsername(HttpServletRequest request) {
+        return jwtService.extractUsername(jwtService.extractJwtFromRequest(request));
     }
 
     private boolean isNotAdminSession(HttpServletRequest request) {
-        String jwt = extractJwtFromRequest(request);
-        String username = jwtService.extractUsername(jwt);
-        return !Objects.equals(username,adminName);
+        return !Objects.equals(getUsername(request),currentUsername);
     }
 
     // API search for all account
