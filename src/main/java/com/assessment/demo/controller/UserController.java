@@ -40,12 +40,7 @@ public class UserController {
     private final PostRepository postRepository;
 
     @GetMapping("/search")       // Looks like this: /user/search?query=...&page=1&pageSize=10&sort=username&order=asc
-    public ResponseEntity<?> searchUsers(@RequestParam(name = "query") String query,
-                                         @RequestParam(name = "page", defaultValue = "0") int page,
-                                         @RequestParam(name = "pageSize", defaultValue = "10") int pageSize,
-                                         @RequestParam(name = "sort", defaultValue = "username") String sort,
-                                         @RequestParam(name = "order", defaultValue = "asc") String order,
-                                         HttpServletRequest request) {
+    public ResponseEntity<?> searchUsers(@RequestParam(name = "query") String query,HttpServletRequest request) {
         try {
             String jwt = jwtService.extractJwtFromRequest(request);
             String currentUser = jwtService.extractUsername(jwt);
@@ -60,14 +55,12 @@ public class UserController {
             List<UserDto> userDTOs = searchResults.stream()
                     .map(userX -> new UserDto(userX.getUsername(),userX.getUserId()))
                     .toList();
-            List<User> users = userService.searchUsers(query, page, pageSize, sort, order);
+            List<User> users = userService.searchUsers(query);
 
             // Calculate total pages based on the total users and pageSize
-            int totalUsers = userService.getTotalUsers(query);
-            int totalPages = (int) Math.ceil((double) totalUsers / pageSize);
 
             // Create a UserSearchResponse DTO
-            UserSearchResponse response = new UserSearchResponse(users, page, pageSize, totalPages, totalUsers);
+            UserSearchResponse response = new UserSearchResponse(users);
 
             // Return the response as JSON
             return ResponseEntity.ok(response);
@@ -85,6 +78,7 @@ public class UserController {
     @GetMapping("/{username}")
     public ResponseEntity<?> getHomepage(@PathVariable String username,HttpServletRequest request) {
         User user = userRepository.findByUsername(username).orElse(null);
+        log.info("username: {}",user != null ? user.getUsername():null);
         UsualResponse response = checkUserAuthentication(request,user);
 
         if (response == null) {
@@ -138,12 +132,12 @@ public class UserController {
         UsualResponse response = checkUserAuthentication(request,user);
         if (response == null) {
             JwtResponse responseData = userService.updateUser(infoRequest,user);
-            if (responseData.getMsg() == null) {
+            if (responseData != null) {
                 responseData.setMsg("Update information successfully! Redirect to homepage...");
                 response = UsualResponse.success(responseData);
             }
             else
-                response = UsualResponse.error(HttpStatus.BAD_REQUEST,responseData.getMsg());
+                response = UsualResponse.error(HttpStatus.BAD_REQUEST,"Error occurs while update information");
         }
         log.info("API calling to update user information ends here!");
         return responseEntity(response);

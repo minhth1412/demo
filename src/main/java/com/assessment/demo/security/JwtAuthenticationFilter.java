@@ -35,15 +35,13 @@ import java.util.Objects;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    // Can't use both userService and userDetailsService here
     private final UserService userService;
-
     private final UserRepository userRepository;
 
     /*
     doFilterInternal method: This method is part of the OncePerRequestFilter class
         and is called for each incoming HTTP request.
-    It contains the logic for JWT authentication.
+    It contains the logic for JWT authentication. And
      */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,@NonNull HttpServletResponse response,@NonNull FilterChain filterChain)
@@ -66,16 +64,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);         // We get the token on the header of request after this
         username = jwtService.extractUsername(jwt);        // Extract username from token's claims
 
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+
         // Check the username is empty or not
         if (StringUtils.isNotEmpty(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userService.userDetailsService().loadUserByUsername(username);
 
             if (jwtService.isTokenExpired(jwt)) {
                 handleExpiredToken(response,"Token has expired. Please login again for token refreshment.");
                 return;
             }
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
             if (user.getToken() == null) {
                 throw new RuntimeException("User token is invalid!");
@@ -86,15 +84,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-//            if (jwtService.isTokenValid(jwt,userDetails)) {
-//                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
-//                        userDetails,null,userDetails.getAuthorities());
-//                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                SecurityContextHolder.getContext().setAuthentication(token);
-
-                // jwtService.updateExpiredToken(jwt, true);
-                // jwtService.updateExpiredToken(jwt, false);
-//            }
+            // Setup another token for control APIs calling with a clear authority
+            if (jwtService.isTokenValid(jwt,user)) {
+                UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
+                        user,null,user.getAuthorities());
+                token.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(token);
+            }
         }
         // continues with the filter chain
         filterChain.doFilter(request,response);

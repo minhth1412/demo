@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 public class AdminController {
     /**
      * Admin controller has author on these APIs:<p>
-     * + /admin/search/all: return all the account that existed in db.
-     * + /admin/search?user={username}: return all the account that have username like the given
+     * + /admin/search/all: return all the account that existed in db.<p>
+     * + /admin/search?user={username}: return all the account that have username like the given<p>
      * + /admin/updateStatus?user={user}&status={statusValue}
      */
 
@@ -169,7 +169,9 @@ public class AdminController {
 
     @GetMapping("/search")
     public ResponseEntity<?> searchUserByName(@RequestParam(name = "user") String partialUsername) {
+        log.info("Enter searching user with partial name");
         try {
+            log.info("Enter searching user with partial name");
             List<User> searchResults = userService.findUsersByPartialUsername(partialUsername);
             if (searchResults.isEmpty()) {
                 log.info("The result is empty and it is different with the change in sql");

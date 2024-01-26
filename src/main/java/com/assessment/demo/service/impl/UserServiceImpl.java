@@ -72,37 +72,31 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<User> searchUsers(String query,int page,int pageSize,String sort,String order) {
-        return null;
+    public List<User> searchUsers(String query) {
+        return null;//~~
     }
 
     @Override
     public int getTotalUsers(String query) {
-        return 0;
+        return 0;//~~
     }
 
     @Override
     public JwtResponse updateUser(UpdateUserInfoRequest infoRequest, User user) {
-        // The Email change can be separate with this later with the 3rd party authentication
-        //  but now just using this change
-        user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
-                infoRequest.getEmail(),infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
-        jwtService.refreshToken(user,false);
-        // ~~ Update token (claims username) using methods that already set up.
-        userRepository.save(user);
-        String msg = "Update information successfully!";
-        log.info(msg);
-        return JwtResponse.fromUserWithToken(user, msg);
-    }
-    public String getUserRole(String username) {
-        // Implement the logic to fetch role from the user entity
-        // Return a role name associated with the user
-        return userRepository.findByUsername(username).map(User::getRoleName).orElse("USER");   // Default role
-    }
-
-    // Custom method to check if the user has any of the specified role
-    public boolean hasRole(String username, String role) {
-        String userRole = getUserRole(username);
-        return userRole.equals(role);
+        try {
+            // The Email change can be separate with this later with the 3rd party authentication
+            //  but now just using this change
+            user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
+                    infoRequest.getEmail(), infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
+            jwtService.refreshToken(user, false);
+            // ~~ Update token (claims username) using methods that already set up.
+            userRepository.save(user);
+            String msg = "Update information successfully!";
+            log.info(msg);
+            return JwtResponse.fromUserWithToken(user, msg);
+        } catch (Exception e) {
+            log.error("There is error occurs in update user infor: " + e.getMessage());
+            return null;
+        }
     }
 }

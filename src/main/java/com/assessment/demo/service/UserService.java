@@ -17,12 +17,7 @@ public interface UserService {
 
     public List<User> findUsersByPartialUsername(String partialUsername);
 
-    List<User> searchUsers(String query,int page,int pageSize,String sort,String order);
+    List<User> searchUsers(String query);
 
     int getTotalUsers(String query);
-
-    public String getUserRole(String username);
-
-    // Custom method to check if the user has any of the specified role
-    public boolean hasRole(String username, String role);
 }

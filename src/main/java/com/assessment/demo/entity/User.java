@@ -150,8 +150,4 @@ public class User extends BaseEntity implements UserDetails {              // In
     public boolean isEnabled() {
         return !this.isDeleted;
     }
-
-    public String getRoleName() {
-        return this.getRole().getRoleName();
-    }
 }

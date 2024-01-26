@@ -13,10 +13,6 @@ import java.util.List;
 public class UserSearchResponse {
 
     private List<User> users;
-    private int page;
-    private int pageSize;
-    private int totalPages;
-    private int totalUsers;
     // Getters and setters
 }
 

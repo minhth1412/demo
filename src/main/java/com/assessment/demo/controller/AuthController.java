@@ -17,22 +17,20 @@ import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
 
-import static com.assessment.demo.util.EmailUtils.isEmail;
-
 @RestController
 @RequiredArgsConstructor
 @Slf4j
-@RequestMapping("/api/auth/")
-public class AuthController {
+@RequestMapping("/api/auth")
+public class AuthController extends BaseController{
     private final AuthService authService;
 
-    @PostMapping("signup")
+    @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
         UsualResponse response = authService.signup(signupRequest);
         return responseEntity(response);
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestBody LoginRequest loginRequest)
     {
@@ -41,7 +39,7 @@ public class AuthController {
         return responseEntity(response);
     }
 
-    @PostMapping("logout")
+    @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request){
         // Explicitly invalidate the current user's authentication token
         JwtResponse response = authService.logout(request);
@@ -52,23 +50,16 @@ public class AuthController {
     }
 
     // API that refresh the present token due to expired
-    @GetMapping("refresh_token")
+    @GetMapping("/refresh_token")
     public ResponseEntity<?> refreshToken(HttpServletRequest request) {
         UsualResponse response = authService.refreshToken(request);
         return responseEntity(response);
     }
 
-    @PostMapping("reset_password")
+    @PostMapping("/reset_password")
     public ResponseEntity<?> resetPassword(@RequestBody resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
         UsualResponse response = authService.resetPassword(resetPasswordRequest,request);
         return responseEntity(response);
-    }
-
-    private ResponseEntity<?> responseEntity(UsualResponse response) {
-        if (response.getData() == null)
-            return ResponseEntity.status(response.getStatus()).body(response.getMessage());
-        else
-            return ResponseEntity.status(response.getStatus()).body(response.getData());
     }
 
     // ~Forgot password method: need 3rd party to handle, so this can be deployed later

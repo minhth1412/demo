@@ -36,8 +36,7 @@ public class RoleServiceImpl implements RoleService {
 
     public void createRoleIfNotExists(int roleId, String roleName) {
         if (!roleRepository.existsById(roleId)) {
-            Role role = new Role(roleId, roleName);
-            roleRepository.save(role);
+            roleRepository.save(new Role(roleId, roleName));
         }
     }
 
