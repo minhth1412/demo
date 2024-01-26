@@ -119,9 +119,6 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.image = image;
         this.dateOfBirth = dateOfBirth;
     }
-    public void updateToken(Token token) {
-        this.token = token;
-    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -136,16 +133,16 @@ public class User extends BaseEntity implements UserDetails {              // In
 
     // If Admin lock this account, the status will be set equals to false
     @Override
-    public boolean isAccountNonLocked(){return true;}
+    public boolean isAccountNonLocked(){return this.status;}
 
-    // Credential will expire when the token is expired, and user need to log in again
+    // Credential will expire when the token expired, and user need to log in again
     // DEVELOP LATER
     @Override
     public boolean isCredentialsNonExpired() {
         return this.isOnline;
     }
 
-    // If the user delete account, isEnable will be set equals to false
+    // If the user delete account, isEnabled will be set equals to false
     @Override
     public boolean isEnabled() {
         return !this.isDeleted;

@@ -2,10 +2,11 @@ package com.assessment.demo.service;
 
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.request.resetPasswordRequest;
+import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.User;
+import com.assessment.demo.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 
 public interface AuthService {
@@ -17,7 +18,11 @@ public interface AuthService {
 
     JwtResponse logout(HttpServletRequest request);
 
-    UsualResponse resetPassword(resetPasswordRequest resetPasswordRequest,HttpServletRequest request);
+    UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest,HttpServletRequest request);
 
     public User extractUserFromRequest(HttpServletRequest request);
+
+    public String getErrorFromSignup(SignupRequest signupRequest);
+
+    public String getErrorFromPassword(String password,String repassword);
 }

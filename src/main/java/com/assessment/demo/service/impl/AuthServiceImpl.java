@@ -1,6 +1,6 @@
 package com.assessment.demo.service.impl;
 
-import com.assessment.demo.dto.request.resetPasswordRequest;
+import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.dto.request.LoginRequest;
@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UsualResponse signup(SignupRequest signupRequest) {
         try {
-            String err = getErrorFromSignup(signupRequest,userRepository);
+            String err = getErrorFromSignup(signupRequest);
 
             if (err != null)
                 throw new ValidationException(err);
@@ -67,10 +67,10 @@ public class AuthServiceImpl implements AuthService {
                     signupRequest.getImage(),
                     signupRequest.getDateOfBirth(),
                     false);
-
-            String msg = "Your account is created successfully! Return to the login page...";
-            log.info(msg);
             userRepository.save(user);
+
+            String msg = "New account is created successfully! Return to the login page...";
+            log.info(msg);
             return UsualResponse.success(JwtResponse.fromUserWithoutToken(user,msg));
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
@@ -100,6 +100,7 @@ public class AuthServiceImpl implements AuthService {
             // After authentication phase, update user token in database
             updateTokenForLoggingInUser(user);
 
+            userRepository.save(user);
             String msg = "Login successfully!";
             log.info(msg);
             // return a response with public information of current user
@@ -122,15 +123,24 @@ public class AuthServiceImpl implements AuthService {
             // Create user entity from found username
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Invalid token!"));
+            String refreshJWT = jwtService.extractJwtFromRequest(request);
 
-            if (jwtService.isTokenInRequestValid(request,user)) {
+            // If the refresh token from the request that valid with current user logging in
+            if (jwtService.isTokenInRequestValid(request,user)
+                    && Objects.equals(user.getToken().getCompressedRefreshTokenData(),refreshJWT)) {
                 jwtService.refreshToken(user, true);
                 log.info(msg);
                 return UsualResponse.success(JwtResponse.fromUserWithToken(user,msg));
             }
-            msg = "The token is not refreshed!";
-            log.error(msg);
-            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,msg);
+            else {
+                msg = "Invalid token from request!";
+                if (!Objects.equals(user.getToken().getCompressedRefreshTokenData(),refreshJWT))
+                    msg = "Invalid token from request! @@@@@";
+                log.info(user.getToken().getCompressedRefreshTokenData());
+                log.info(refreshJWT);
+                log.error(msg);
+                return UsualResponse.error(HttpStatus.BAD_REQUEST,msg);
+            }
         } catch (InvalidJwtException e) {
             log.info("The user token is expired: {}", e.getMessage());
             return UsualResponse.error(HttpStatus.BAD_REQUEST,e.getMessage());
@@ -144,10 +154,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public JwtResponse logout(HttpServletRequest request) {//HttpServletRequest request) {
         User user = extractUserFromRequest(request);
+
         if (user == null) {
             return JwtResponse.msg("Invalid token");
         }
         if (!user.getIsOnline()) {
+            log.info("This user.getIsOnline equals to {}",false);
             return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
         } else {
             user.setIsOnline(false);
@@ -158,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
 
     // Apply for all accounts
     @Override
-    public UsualResponse resetPassword(resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
+    public UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
         String msg = null;
         try {
             String password = resetPasswordRequest.getNewPassword();
@@ -166,19 +178,17 @@ public class AuthServiceImpl implements AuthService {
             User user = extractUserFromRequest(request);
             if (user == null)
                 msg = "Bad credentials!";
-            else if (!Objects.equals(resetPasswordRequest.getOldPassword(),user.getPassword()))
+            else if (!Objects.equals(resetPasswordRequest.getOldPassword(),passwordEncoder.encode(user.getPassword())))
                 msg = "Wrong old password!";
             else
                 msg = getErrorFromPassword(password,repassword);
-            HttpStatus status = HttpStatus.BAD_REQUEST;
-            if (msg == null) {
-                status = HttpStatus.OK;
-                msg = "Your password is changed!";
-            }
-            return UsualResponse.builder().status(status).message(msg).build();
+
+            if (msg == null)
+                return UsualResponse.success("Your password is changed!");
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
         } catch (InvalidJwtException e) {
             log.error(e.getMessage());
-            return UsualResponse.builder().status(HttpStatus.UNAUTHORIZED).message("Invalid token!").build();
+            return UsualResponse.error(HttpStatus.UNAUTHORIZED, "Invalid token!");
         } catch (Exception e) {
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred: " + e.getMessage());
         }
@@ -198,7 +208,23 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
-    private static String getErrorFromSignup(SignupRequest signupRequest,UserRepository userRepository) {
+    public String getErrorFromPassword(String password,String repassword) {
+        String msg = null;
+        if (password == null || password.trim().isEmpty())
+            msg = "Password must not be empty";
+        else if (repassword == null || repassword.trim().isEmpty())
+            msg = "Repassword must not be empty";
+        else if (!password.equals(repassword))
+            msg = "Password and repassword do not match";
+        else if (password.length() < 4)
+            msg = "Password must be at least 5 characters long";
+        else if (!password.matches(passwordRegex))
+            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
+        return msg;
+    }
+
+    @Override
+    public String getErrorFromSignup(SignupRequest signupRequest) {
         String password = signupRequest.getPassword();
         String repassword = signupRequest.getRepassword();
         String username = signupRequest.getUsername();
@@ -212,21 +238,6 @@ public class AuthServiceImpl implements AuthService {
             msg = "Email already existed";
         else if (!isEmail(email))
             msg = "Email is in wrong type";
-        return msg;
-    }
-
-    private static String getErrorFromPassword(String password,String repassword) {
-        String msg = null;
-        if (password == null || password.trim().isEmpty())
-            msg = "Password must not be empty";
-        else if (repassword == null || repassword.trim().isEmpty())
-            msg = "Repassword must not be empty";
-        else if (!password.equals(repassword))
-            msg = "Password and repassword do not match";
-        else if (password.length() < 4)
-            msg = "Password must be at least 5 characters long";
-        else if (!password.matches(passwordRegex))
-            msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
         return msg;
     }
 

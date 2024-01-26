@@ -12,4 +12,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     List<Post> findByAuthor(User author);
 
     Optional<Post> findByPostId(UUID postId);
+
+    void deletePostByPostId(UUID postId);
 }

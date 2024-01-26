@@ -1,7 +1,7 @@
 spring:
   jwt:
     secretKey: 12345678910987654321ABCDEFFEDCBA01234567899876543210ABCDEFFEDCBA
-    tokenLifespan: 3600000   # 1 hour #
+    tokenLifespan: 36000000   # 10 hour #
     refreshTokenLifespan: 86400000    # 24 hours #
   account:
     admin:

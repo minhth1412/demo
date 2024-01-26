@@ -1,10 +1,14 @@
 package com.assessment.demo.service.impl;
 
+import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.others.JwtResponse;
+import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.Role;
+import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.UserRepository;
+import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +49,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final JwtService jwtService;
+    private final AuthService authService;
 
     public void createAdminAccountIfNotExists(int roleId) {
         Role adminRole = roleService.getRoleById(roleId);
@@ -86,16 +92,18 @@ public class UserServiceImpl implements UserService {
         try {
             // The Email change can be separate with this later with the 3rd party authentication
             //  but now just using this change
+            String oldUsername = user.getUsername();
             user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
                     infoRequest.getEmail(), infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
-            jwtService.refreshToken(user, false);
-            // ~~ Update token (claims username) using methods that already set up.
             userRepository.save(user);
+            // The jwt is checked, so we need to update token with new username here if it is modified
+            if (!Objects.equals(oldUsername,user.getUsername()))
+                jwtService.refreshToken(user, false);
             String msg = "Update information successfully!";
             log.info(msg);
             return JwtResponse.fromUserWithToken(user, msg);
         } catch (Exception e) {
-            log.error("There is error occurs in update user infor: " + e.getMessage());
+            log.error("There is error occurs in update user information: " + e.getMessage());
             return null;
         }
     }

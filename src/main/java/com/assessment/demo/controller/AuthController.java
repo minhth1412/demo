@@ -2,15 +2,19 @@ package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.request.resetPasswordRequest;
+import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.dto.response.others.JwtResponse;
 
+import com.assessment.demo.repository.PostRepository;
+import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
+import com.assessment.demo.service.JwtService;
+import com.assessment.demo.service.PostService;
+import com.assessment.demo.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +22,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequiredArgsConstructor
 @Slf4j
 @RequestMapping("/api/auth")
 public class AuthController extends BaseController{
-    private final AuthService authService;
+
+
+    public AuthController(AuthService authService,JwtService jwtService,PostService postService,UserService userService,UserRepository userRepository,PostRepository postRepository) {
+        super(authService,jwtService,postService,userService,userRepository,postRepository);
+    }
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
@@ -57,7 +64,7 @@ public class AuthController extends BaseController{
     }
 
     @PostMapping("/reset_password")
-    public ResponseEntity<?> resetPassword(@RequestBody resetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
         UsualResponse response = authService.resetPassword(resetPasswordRequest,request);
         return responseEntity(response);
     }

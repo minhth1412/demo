@@ -4,6 +4,7 @@ import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.exception.InvalidJwtException;
 import com.assessment.demo.repository.TokenRepository;
+import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.JwtService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -32,6 +33,7 @@ public class JwtServiceImpl implements JwtService {
     private int refreshTokenLifespan;
 
     private final TokenRepository tokenRepository;
+    private final UserRepository userRepository;
 
     public String extractJwtFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader("Authorization");
@@ -144,34 +146,51 @@ public class JwtServiceImpl implements JwtService {
         // Extract the time expired of tokens
         Date tkTime = extractExpiration(token);
         Date refreshTkTime = extractExpiration(refreshToken);
-
-        Token oldToken = tokenRepository.findByTokenId(user.getToken().getTokenId()).orElse(null);
-        if (oldToken != null) {
-            oldToken.updateToken(token,refreshToken,tkTime,refreshTkTime);
-        } else {
-            throw new RuntimeException("There is no token to refresh!");
+        Token oldToken = null;
+        try{
+            oldToken = tokenRepository.findByTokenId(user.getToken().getTokenId()).orElse(null);
+            if (oldToken != null && isResetTime) {
+                oldToken.updateToken(token,refreshToken,tkTime,refreshTkTime);
+            }
+        }catch (Exception e){
+            log.info("The token of user is not initialized yet till now!");
+            token = updateExpiredToken(token,tokenLifespan);
+            refreshToken = updateExpiredToken(refreshToken,refreshTokenLifespan);
+            oldToken = new Token(token,refreshToken,tkTime,refreshTkTime);
         }
-        if (isResetTime) {
-            updateExpiredToken(oldToken.getCompressedTokenData(),false);
-            updateExpiredToken(oldToken.getCompressedRefreshTokenData(),true);
+        // if the oldToken and the new token generated above have the same name
+        // -> The refresh token is not from update username, so refresh all
+        // else if the oldToken and the new token have different name, it proves that the user has adjusted the username.
+        // -> Not reset time expiration, but save new tokens generated from new username
+        finally {
+            if (oldToken != null){
+                oldToken.setUser(user);
+                user.setToken(oldToken);
+                tokenRepository.save(oldToken);
+                userRepository.save(user);
+                log.info("The token is refreshed and saved in the db");
+            }
+            else
+                throw new RuntimeException("Can not renew the JWT");
         }
-        // Save changes
-        tokenRepository.save(oldToken);
     }
 
     @Override
-    public void updateExpiredToken(String token,boolean isRefresh) {
-        int time = (isRefresh) ? refreshTokenLifespan : tokenLifespan;
+    public String updateExpiredToken(String token, int lifespan) {
+        // Build a new token with the claims pull from the token
+        return tokenBuilder(extractAllClaims(token),extractUsername(token),lifespan);
+    }
 
-        Claims claims = this.extractAllClaims(token);
-        claims.setIssuedAt(new Date());
-        claims.setExpiration(new Date((new Date()).getTime() + time));
-
-        // Build a new token with the updated claims
-        Jwts.builder()
+    private String tokenBuilder(Claims claims, String username, int lifespan) {
+        return Jwts.builder()
                 .setClaims(claims)
-                .signWith(getSignKey(),SignatureAlgorithm.HS256)
-                .compact();
+                .setSubject(username)
+                .setIssuedAt(new Date()) // Token creation time
+                // Token expiration time: 7 days from the current time
+                // Date(new Date()) will return amount of ms that represent for that day
+                .setExpiration(new Date((new Date()).getTime() + lifespan))
+                .signWith(getSignKey(),SignatureAlgorithm.HS256) // Sign the token with a secret key
+                .compact(); // Compact the JWT into its final form
     }
 
     @Override

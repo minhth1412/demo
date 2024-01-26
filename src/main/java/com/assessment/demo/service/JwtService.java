@@ -26,7 +26,7 @@ public interface JwtService {
 
     public void refreshToken(User user, Boolean isResetTime);
 
-    public void updateExpiredToken(String token, boolean isRefresh);
+    public String updateExpiredToken(String token, int lifespan);
 
     public boolean isTokenInRequestValid(HttpServletRequest request,User user);
 

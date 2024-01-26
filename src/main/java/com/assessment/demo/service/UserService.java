@@ -1,7 +1,9 @@
 package com.assessment.demo.service;
 
+import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.others.JwtResponse;
+import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
