@@ -45,4 +45,15 @@ public abstract class BaseController {
         }
         return null;
     }
+
+    // Method in this controller to check if the token is valid or not by jwt in request header
+    protected User checkUserSession(HttpServletRequest request) {
+        String jwt = jwtService.extractJwtFromRequest(request);
+        if (jwt == null)
+            return null;
+
+        String currentUser = jwtService.extractUsername(jwt);
+        return userRepository.findByUsername(currentUser).orElse(null);
+    }
+
 }

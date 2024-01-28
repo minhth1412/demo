@@ -1,5 +1,6 @@
 package com.assessment.demo.entity;
 
+import com.assessment.demo.entity.Enum.RequestStatus;
 import com.assessment.demo.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -31,4 +33,17 @@ public class Notify extends BaseEntity {
 
     @Column(name = "isRead", nullable = false)
     private Boolean isRead;
+
+    public Notify(User user, String message) {
+        super();
+        this.notificationId = UUID.randomUUID();
+        this.user = user;
+        this.message = message;
+        this.isRead = false;        // This is new notification, so this is default value
+    }
+
+    public void update() {
+        this.isRead = true;
+        this.setUpdatedAt(new Date());
+    }
 }

@@ -1,15 +1,18 @@
 package com.assessment.demo.service;
 
 import com.assessment.demo.dto.response.others.UsualResponse;
-import jakarta.servlet.http.HttpServletRequest;
+import com.assessment.demo.entity.User;
+
+import java.util.UUID;
 
 public interface FriendService {
 
-    UsualResponse sendRequest(HttpServletRequest request);
+    UsualResponse sendRequest(User requester, UUID receiver);
 
-    UsualResponse acceptFriendRequest(HttpServletRequest request);
+    UsualResponse acceptFriendRequest(User userAccept, UUID userSendRequest);
 
-    UsualResponse rejectFriendRequest(HttpServletRequest request);
+    UsualResponse rejectFriendRequest(User userReject, UUID userSendRequest);
 
-    UsualResponse removeFriend(HttpServletRequest request);
+    // Will be deployed later
+    //UsualResponse removeFriend(User requester, UUID receiver);
 }

@@ -171,6 +171,8 @@ public class AuthServiceImpl implements AuthService {
     public UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest, HttpServletRequest request) {
         String msg = null;
         try {
+            if (resetPasswordRequest == null)
+                throw new InvalidJwtException("Invalid token");
             String password = resetPasswordRequest.getNewPassword();
             String repassword = resetPasswordRequest.getConfirmNewPassword();
             User user = extractUserFromRequest(request);
