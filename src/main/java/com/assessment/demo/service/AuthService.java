@@ -16,7 +16,7 @@ public interface AuthService {
 
     public UsualResponse refreshToken(HttpServletRequest httpServletRequest);
 
-    JwtResponse logout(HttpServletRequest request);
+    UsualResponse logout(HttpServletRequest request);
 
     UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest,HttpServletRequest request);
 

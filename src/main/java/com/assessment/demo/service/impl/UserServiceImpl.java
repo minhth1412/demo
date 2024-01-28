@@ -97,8 +97,9 @@ public class UserServiceImpl implements UserService {
                     infoRequest.getEmail(), infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
             userRepository.save(user);
             // The jwt is checked, so we need to update token with new username here if it is modified
-            if (!Objects.equals(oldUsername,user.getUsername()))
+            if (!Objects.equals(oldUsername,user.getUsername())) {
                 jwtService.refreshToken(user, false);
+            }
             String msg = "Update information successfully!";
             log.info(msg);
             return JwtResponse.fromUserWithToken(user, msg);

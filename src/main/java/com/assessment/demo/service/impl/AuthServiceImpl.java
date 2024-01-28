@@ -9,10 +9,12 @@ import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.exception.InvalidJwtException;
+import com.assessment.demo.repository.RoleRepository;
 import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ import static com.assessment.demo.util.EmailUtils.isEmail;
 @Slf4j
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -62,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
                     signupRequest.getFirstname(),
                     signupRequest.getLastname(),
                     // A new user has default USER role, it can be edited in db by ADMIN.
-                    new Role(roleUserId,roleUserName),
+                    new Role(roleUserId, roleUserName),
                     signupRequest.getBio(),
                     signupRequest.getImage(),
                     signupRequest.getDateOfBirth(),
@@ -71,24 +74,23 @@ public class AuthServiceImpl implements AuthService {
 
             String msg = "New account is created successfully! Return to the login page...";
             log.info(msg);
-            return UsualResponse.success(JwtResponse.fromUserWithoutToken(user,msg));
+            return UsualResponse.success(JwtResponse.fromUserWithoutToken(user, msg));
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
-            return UsualResponse.error(HttpStatus.BAD_REQUEST,e.getMessage());
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Error while processing user sign up with message: " + e.getMessage());
-            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
     @Override
     public UsualResponse login(LoginRequest loginRequest) {
+        User user = userRepository.findByUsername(loginRequest.getUsername())
+                .orElse(null);
         try {
             // Check username and password
-            User user = userRepository.findByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new RuntimeException("Invalid username or password"));
-
-            if (!passwordEncoder.matches(loginRequest.getPassword(),user.getPassword()))
+            if (user == null || !passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()))
                 throw new RuntimeException("Invalid username or password");
             else if (!user.getStatus())
                 throw new AccountLockedException("Your account is locked and can not be used right now!");
@@ -104,8 +106,8 @@ public class AuthServiceImpl implements AuthService {
             String msg = "Login successfully!";
             log.info(msg);
             // return a response with public information of current user
-            return UsualResponse.success(JwtResponse.fromUserWithToken(user,msg));
-        } catch (AccountLockedException e) {
+            return UsualResponse.success(JwtResponse.fromUserWithToken(user, msg));
+        } catch (AccountLockedException | RuntimeException e) {
             log.error(e.getMessage());
             return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
@@ -126,51 +128,47 @@ public class AuthServiceImpl implements AuthService {
             String refreshJWT = jwtService.extractJwtFromRequest(request);
 
             // If the refresh token from the request that valid with current user logging in
-            if (jwtService.isTokenInRequestValid(request,user)
-                    && Objects.equals(user.getToken().getCompressedRefreshTokenData(),refreshJWT)) {
+            if (jwtService.isTokenInRequestValid(request, user)
+                    && Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT)) {
                 jwtService.refreshToken(user, true);
                 log.info(msg);
-                return UsualResponse.success(JwtResponse.fromUserWithToken(user,msg));
-            }
-            else {
+                return UsualResponse.success(JwtResponse.fromUserWithToken(user, msg));
+            } else {
                 msg = "Invalid token from request!";
-                if (!Objects.equals(user.getToken().getCompressedRefreshTokenData(),refreshJWT))
+                if (!Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT))
                     msg = "Invalid token from request! @@@@@";
                 log.info(user.getToken().getCompressedRefreshTokenData());
                 log.info(refreshJWT);
                 log.error(msg);
-                return UsualResponse.error(HttpStatus.BAD_REQUEST,msg);
+                return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
             }
         } catch (InvalidJwtException e) {
             log.info("The user token is expired: {}", e.getMessage());
-            return UsualResponse.error(HttpStatus.BAD_REQUEST,e.getMessage());
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
 
         } catch (Exception e) {
             log.error("Error while processing refresh token with message: " + e.getMessage());
-            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         }
     }
 
     @Override
-    public JwtResponse logout(HttpServletRequest request) {//HttpServletRequest request) {
+    public UsualResponse logout(HttpServletRequest request) {//HttpServletRequest request) {
         User user = extractUserFromRequest(request);
+        if (user == null)
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, "Invalid token");
+        if (!user.getIsOnline())
+            return UsualResponse.error(HttpStatus.FORBIDDEN,
+                    "Bad credentials! You need to login first to do this action!");
+        user.setIsOnline(false);
+        userRepository.save(user);
+        return UsualResponse.success("Logout successfully! Redirect to the login page....");
 
-        if (user == null) {
-            return JwtResponse.msg("Invalid token");
-        }
-        if (!user.getIsOnline()) {
-            log.info("This user.getIsOnline equals to {}",false);
-            return JwtResponse.msg("Bad credentials! You need to login first to do this action!");
-        } else {
-            user.setIsOnline(false);
-            userRepository.save(user);
-            return JwtResponse.msg(null);
-        }
     }
 
     // Apply for all accounts
     @Override
-    public UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
+    public UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest, HttpServletRequest request) {
         String msg = null;
         try {
             String password = resetPasswordRequest.getNewPassword();
@@ -178,11 +176,10 @@ public class AuthServiceImpl implements AuthService {
             User user = extractUserFromRequest(request);
             if (user == null)
                 msg = "Bad credentials!";
-            else if (!Objects.equals(resetPasswordRequest.getOldPassword(),passwordEncoder.encode(user.getPassword())))
+            else if (!Objects.equals(resetPasswordRequest.getOldPassword(), passwordEncoder.encode(user.getPassword())))
                 msg = "Wrong old password!";
             else
-                msg = getErrorFromPassword(password,repassword);
-
+                msg = getErrorFromPassword(password, repassword);
             if (msg == null)
                 return UsualResponse.success("Your password is changed!");
             return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
@@ -190,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
             log.error(e.getMessage());
             return UsualResponse.error(HttpStatus.UNAUTHORIZED, "Invalid token!");
         } catch (Exception e) {
-            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR,"An unexpected error occurred: " + e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred: " + e.getMessage());
         }
     }
 
@@ -199,7 +196,7 @@ public class AuthServiceImpl implements AuthService {
         final String authHeader = request.getHeader("Authorization");
         // Using the auth Bearer ("Bearer " + <token>), check if it is not the bearer token.
         // If not, it continues with the filter chain without attempting JWT authentication.
-        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
+        if (org.apache.commons.lang3.StringUtils.isEmpty(authHeader) || !org.apache.commons.lang3.StringUtils.startsWith(authHeader, "Bearer ")) {
             throw new InvalidJwtException("The token is not the Bearer token format!");
         }
         final String jwt = authHeader.substring(7);         // We get the token on the header of request after this
@@ -208,7 +205,7 @@ public class AuthServiceImpl implements AuthService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
-    public String getErrorFromPassword(String password,String repassword) {
+    public String getErrorFromPassword(String password, String repassword) {
         String msg = null;
         if (password == null || password.trim().isEmpty())
             msg = "Password must not be empty";
@@ -229,7 +226,8 @@ public class AuthServiceImpl implements AuthService {
         String repassword = signupRequest.getRepassword();
         String username = signupRequest.getUsername();
         String email = signupRequest.getEmail();
-        String msg = getErrorFromPassword(password,repassword);
+        String msg = getErrorFromPassword(password, repassword);
+        String role = signupRequest.getRole();
         if (username == null || email == null)
             msg = "Lack information";
         else if (userRepository.existsByUsername(username))
@@ -238,24 +236,26 @@ public class AuthServiceImpl implements AuthService {
             msg = "Email already existed";
         else if (!isEmail(email))
             msg = "Email is in wrong type";
+        else if (role != null && !roleRepository.existsByRoleName(role))
+            msg = "Role " + role + " is not existed!";
         return msg;
     }
 
     private void updateTokenForLoggingInUser(User user) {
         Token userToken;
-        String tk = jwtService.generateToken(user,false);
-        String refreshTk = jwtService.generateToken(user,true);
+        String tk = jwtService.generateToken(user, false);
+        String refreshTk = jwtService.generateToken(user, true);
         Date tkTime = jwtService.extractExpiration(tk);
         Date refreshTkTime = jwtService.extractExpiration(refreshTk);
         if (user.getToken() == null)
             // Create tokens for new user's login
-            userToken = new Token(tk,refreshTk,tkTime,refreshTkTime);
+            userToken = new Token(tk, refreshTk, tkTime, refreshTkTime);
         else {
             userToken = user.getToken();
             // Update expiration time for tokens of user logged in
             Date current_time = new Date();
             if (current_time.compareTo(userToken.getTokenExpireAt()) <= 0)
-                userToken.updateToken(tk,refreshTk,tkTime,refreshTkTime);
+                userToken.updateToken(tk, refreshTk, tkTime, refreshTkTime);
         }
         userToken.setUser(user);
         user.setToken(userToken);

@@ -8,15 +8,22 @@ import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.UserRepository;
+import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.PostService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +41,18 @@ public class PostServiceImpl implements PostService {
         } else {
             // Handle case where the user is not found
             return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public UsualResponse getAllPostsForCurrentUser(UUID userId) {
+        User user = userRepository.findByUserId(userId).orElse(null);
+
+        if (user != null) {
+            return UsualResponse.success(user.getUsername(), postRepository.findByAuthor(user));
+        } else {
+            // Handle case where the user is not found
+            return UsualResponse.success("This user does not have any posts!");
         }
     }
 
@@ -60,4 +79,19 @@ public class PostServiceImpl implements PostService {
     public void deletePostByPostId(User user,UUID postId) {
         postRepository.deletePostByPostId(postId);
     }
+
+    @Override
+    public UsualResponse getAllPosts() {
+        return UsualResponse.success("Welcome to news feed",
+                postRepository.findAll(Sort.by(Sort.Order.desc("createdAt"))));
+    }
+
+    @Override
+    public UsualResponse getPostByPostId(UUID userId, UUID postId) {
+
+        Post post = postRepository.findByPostId(postId).orElse(null);
+        return (post != null) ? UsualResponse.success("Post found!", post) :
+                UsualResponse.success("Post not found!");
+    }
+
 }

@@ -45,18 +45,4 @@ public abstract class BaseController {
         }
         return null;
     }
-
-    /**
-     * Check if token is valid, include:<p>
-     * + user extract from the jwt exists<p>
-     * + is token expires<p>
-     * + is the user extract from the jwt equals with the user get from userId</p>
-     * It will throw error if 1 of 3 things above does not match
-     */
-    protected boolean isTokenValid(HttpServletRequest request,User user) {
-        return userRepository.findByUsername(jwtService.extractJwtFromRequest(request)).isPresent() &&
-                jwtService.isTokenValid(jwtService.extractJwtFromRequest(request),user);
-    }
-
-
 }

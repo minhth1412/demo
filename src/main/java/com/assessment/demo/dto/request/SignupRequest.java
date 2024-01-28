@@ -41,7 +41,7 @@ public class SignupRequest {
 
     //..................
 
-    private String role_id;
+    private String role = null;
 
     // Nullable
     private LocalDate dateOfBirth;

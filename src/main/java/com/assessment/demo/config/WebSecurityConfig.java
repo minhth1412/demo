@@ -1,17 +1,9 @@
 package com.assessment.demo.config;
 
 import com.assessment.demo.security.AuthEntryPointJwt;
-import com.assessment.demo.security.JwtAuthenticationFilter;
-import com.assessment.demo.service.JwtService;
-import com.assessment.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,10 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.ForwardLogoutSuccessHandler;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -35,7 +23,6 @@ public class WebSecurityConfig {
     private final AuthEntryPointJwt unauthorizedHandler;
     //private final UserService userService;
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
@@ -43,8 +30,8 @@ public class WebSecurityConfig {
                         // Endpoint to CD token or create a new account
 
                         authorize.requestMatchers("/api/**", "/post/**").permitAll()
-                                .requestMatchers("/admin/**").permitAll()//.hasAuthority("ADMIN")//permitAll()) ~~
-                                .requestMatchers("/user/**").permitAll()//hasAuthority("USER")//permitAll() ~~
+                                .requestMatchers("/admin/**").permitAll()
+                                .requestMatchers("/user/**").permitAll()
                                 .anyRequest().authenticated());
 
         // If there is any exception that is not being authorized yet, it comes here:

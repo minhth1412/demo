@@ -14,8 +14,6 @@ public interface JwtService {
 
     public String generateToken(UserDetails userDetails, boolean isRefresh);
 
-    String createToken(Map<String, Object> Claims, UserDetails userDetails, boolean isRefresh);
-
     public String extractUsername(String token);
 
     public Date extractExpiration(String token);
@@ -26,7 +24,6 @@ public interface JwtService {
 
     public void refreshToken(User user, Boolean isResetTime);
 
-    public String updateExpiredToken(String token, int lifespan);
 
     public boolean isTokenInRequestValid(HttpServletRequest request,User user);
 

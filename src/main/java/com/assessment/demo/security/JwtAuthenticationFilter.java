@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Objects;
 
-@Component
+//@Component
 @RequiredArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -62,6 +62,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 7 is the length of the first path "Bearer ", remove that path and save into jwt variables
         jwt = authHeader.substring(7);         // We get the token on the header of request after this
+        if (jwtService.isTokenExpired(jwt))
+            handleExpiredToken(response,"Token has expired. Please login again");
         username = jwtService.extractUsername(jwt);        // Extract username from token's claims
 
         User user = userRepository.findByUsername(username)

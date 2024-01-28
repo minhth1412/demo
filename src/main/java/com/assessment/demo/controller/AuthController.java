@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -25,8 +26,15 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RequestMapping("/api/auth")
 public class AuthController extends BaseController{
+    /**
+     * Authentication controller, includes:<p>
+     * -> Signup user account       (/api/auth/signup)<p>
+     * -> log in                     (/api/auth/login)<p>
+     * -> log out                   (/api/auth/logout)<p>
+     * -> refresh token             (/api/auth/refresh_token)<p>
+     */
 
-
+    @Autowired
     public AuthController(AuthService authService,JwtService jwtService,PostService postService,UserService userService,UserRepository userRepository,PostRepository postRepository) {
         super(authService,jwtService,postService,userService,userRepository,postRepository);
     }
@@ -38,10 +46,7 @@ public class AuthController extends BaseController{
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody LoginRequest loginRequest)
-    {
-        // If no errors, return 200 with login method from authService
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest)  {
         UsualResponse response = authService.login(loginRequest);
         return responseEntity(response);
     }
@@ -49,11 +54,8 @@ public class AuthController extends BaseController{
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request){
         // Explicitly invalidate the current user's authentication token
-        JwtResponse response = authService.logout(request);
-        if (response.getMsg() != null){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response.getMsg());
-        }
-        return ResponseEntity.ok("Logout successfully! Redirect to the login page....");
+        UsualResponse response = authService.logout(request);
+        return responseEntity(response);
     }
 
     // API that refresh the present token due to expired
@@ -63,11 +65,5 @@ public class AuthController extends BaseController{
         return responseEntity(response);
     }
 
-    @PostMapping("/reset_password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest,HttpServletRequest request) {
-        UsualResponse response = authService.resetPassword(resetPasswordRequest,request);
-        return responseEntity(response);
-    }
-
-    // ~Forgot password method: need 3rd party to handle, so this can be deployed later
+    // Forgot password: need 3rd party to handle, this will be deployed later
 }

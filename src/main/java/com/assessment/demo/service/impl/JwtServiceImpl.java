@@ -41,33 +41,15 @@ public class JwtServiceImpl implements JwtService {
                 !org.apache.commons.lang3.StringUtils.startsWith(authHeader,"Bearer ")) {
             String errorMessage = "The token is not in the Bearer token format!";
             log.info(errorMessage);
-            throw new InvalidJwtException(errorMessage);
+            return null;
         }
         // Extract and return the token from the Authorization header
         return authHeader.substring(7);
     }
 
     public String generateToken(UserDetails userDetails,boolean isRefresh) {
-        Map<String, Object> Claims = new HashMap<>();
-        return createToken(Claims,userDetails,isRefresh);
-    }
-
-    @Override
-    public String createToken(Map<String, Object> Claims,UserDetails userDetails,boolean isRefresh) {
-        int lifespan = tokenLifespan;
-        if (isRefresh)
-            lifespan = refreshTokenLifespan;
-
-        // Build a JWT with custom claims and subject set to the username
-        return Jwts.builder()
-                .setClaims(Claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date()) // Token creation time
-                // Token expiration time: 7 days from the current time
-                // Date(new Date()) will return amount of ms that represent for that day
-                .setExpiration(new Date((new Date()).getTime() + lifespan))
-                .signWith(getSignKey(),SignatureAlgorithm.HS256) // Sign the token with a secret key
-                .compact(); // Compact the JWT into its final form
+        int lifespan = isRefresh ? refreshTokenLifespan : tokenLifespan;
+        return tokenBuilder(userDetails.getUsername(), lifespan);
     }
 
     // Retrieve the secret key for signing the JWT
@@ -110,6 +92,8 @@ public class JwtServiceImpl implements JwtService {
     // Check if the token is valid by comparing the username and verifying expiration
     @Override
     public boolean isTokenValid(String token,UserDetails userDetails) {
+        if (token == null)
+            return false;
         try {
             Claims claims = extractAllClaims(token);
             String username = extractUsername(token);
@@ -139,8 +123,15 @@ public class JwtServiceImpl implements JwtService {
         return false;
     }
 
+    // when change the username, the token times is also refresh
+//    private String changeUsernameInToken(String token, String newUsername, int lifespan) {
+//        // Build a new token with the claims from the original token and the new username
+//        return tokenBuilder(newUsername, lifespan);
+//    }
+
     @Override
     public void refreshToken(User user, Boolean isResetTime) {
+        userRepository.save(user);
         String token = generateToken(user,false);
         String refreshToken = generateToken(user,true);
         // Extract the time expired of tokens
@@ -149,13 +140,13 @@ public class JwtServiceImpl implements JwtService {
         Token oldToken = null;
         try{
             oldToken = tokenRepository.findByTokenId(user.getToken().getTokenId()).orElse(null);
-            if (oldToken != null && isResetTime) {
+            if (!isResetTime && oldToken != null) {
                 oldToken.updateToken(token,refreshToken,tkTime,refreshTkTime);
             }
         }catch (Exception e){
             log.info("The token of user is not initialized yet till now!");
-            token = updateExpiredToken(token,tokenLifespan);
-            refreshToken = updateExpiredToken(refreshToken,refreshTokenLifespan);
+            token = tokenBuilder(token,tokenLifespan);
+            refreshToken = tokenBuilder(refreshToken,refreshTokenLifespan);
             oldToken = new Token(token,refreshToken,tkTime,refreshTkTime);
         }
         // if the oldToken and the new token generated above have the same name
@@ -175,20 +166,13 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
-    @Override
-    public String updateExpiredToken(String token, int lifespan) {
-        // Build a new token with the claims pull from the token
-        return tokenBuilder(extractAllClaims(token),extractUsername(token),lifespan);
-    }
-
-    private String tokenBuilder(Claims claims, String username, int lifespan) {
+    private String tokenBuilder(String username, int lifespan) {
+        Date currentDate = new Date();
+        Date expireDate = new Date(currentDate.getTime() + lifespan);
         return Jwts.builder()
-                .setClaims(claims)
                 .setSubject(username)
-                .setIssuedAt(new Date()) // Token creation time
-                // Token expiration time: 7 days from the current time
-                // Date(new Date()) will return amount of ms that represent for that day
-                .setExpiration(new Date((new Date()).getTime() + lifespan))
+                .setIssuedAt(currentDate)
+                .setExpiration(expireDate)
                 .signWith(getSignKey(),SignatureAlgorithm.HS256) // Sign the token with a secret key
                 .compact(); // Compact the JWT into its final form
     }
