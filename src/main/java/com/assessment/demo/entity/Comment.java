@@ -1,7 +1,7 @@
 package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.base.BaseEntity;
-import com.assessment.demo.entity.base.EntityWithInteracts;
+import com.assessment.demo.entity.base.EntityWithReacts;
 import io.micrometer.common.lang.Nullable;
 import lombok.Data;
 import jakarta.persistence.*;
@@ -13,7 +13,7 @@ import java.util.*;
 @Data
 @Entity
 @Table(name = "Comment")
-public class Comment extends BaseEntity implements EntityWithInteracts {     // DONE temporary
+public class Comment extends BaseEntity implements EntityWithReacts {     // DONE temporary
     // Primary Key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -43,26 +43,27 @@ public class Comment extends BaseEntity implements EntityWithInteracts {     // 
     @Column(name = "content")
     private String content;
 
-    // Manage foreign Key, the get method and addInteract, removeInteract are
-    //  implemented on EntityWithInteracts
+    // Manage foreign Key, the get method and addReact, removeReact are
+    //  implemented on EntityWithReacts
     @ManyToMany(mappedBy = "comments")
-    private Set<Interact> interacts = new HashSet<>();
+    private Set<React> reacts = new HashSet<>();
 
     // Constructors
-    public Comment(Post post, @Nullable Comment replyTo) {
+    public Comment(Post post, @Nullable Comment replyTo, String content, User user) {
         // Generate a new UUID for the user during object creation
         super();
         this.commentId = UUID.randomUUID();
         this.isDeleted = false;
         this.replyTo = replyTo;         // Even equals null
         this.post = post;
+        this.content = content;
+        this.author = user;
     }
 
-
-    // Override from entityWithInteracts
     @Override
-    public Set<Interact> getInteracts() {
-        return interacts;
+    // Override from entityWithReacts
+    public Set<React> getReacts() {
+        return reacts;
     }
     // ...(later )
 }

@@ -7,6 +7,7 @@ import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.dto.response.others.JwtResponse;
 
 import com.assessment.demo.repository.PostRepository;
+import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
@@ -35,8 +36,8 @@ public class AuthController extends BaseController{
      */
 
     @Autowired
-    public AuthController(AuthService authService,JwtService jwtService,PostService postService,UserService userService,UserRepository userRepository,PostRepository postRepository) {
-        super(authService,jwtService,postService,userService,userRepository,postRepository);
+    public AuthController(AuthService authService,JwtService jwtService,PostService postService,UserService userService,UserRepository userRepository,PostRepository postRepository, TokenRepository tokenRepository) {
+        super(authService,jwtService,postService,userService,userRepository,postRepository, tokenRepository);
     }
 
     @PostMapping("/signup")

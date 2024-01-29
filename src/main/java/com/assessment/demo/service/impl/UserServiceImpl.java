@@ -4,6 +4,7 @@ import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.entity.Notify;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
@@ -15,15 +16,13 @@ import com.assessment.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -46,10 +45,12 @@ public class UserServiceImpl implements UserService {
     @Value("${spring.account.admin.lastname}")
     String lastname;
 
+    @Value("${spring.role_admin.name}")
+    private String roleAdminName;
+
     private final UserRepository userRepository;
     private final RoleService roleService;
     private final JwtService jwtService;
-    private final AuthService authService;
 
     public void createAdminAccountIfNotExists(int roleId) {
         Role adminRole = roleService.getRoleById(roleId);
@@ -59,7 +60,7 @@ public class UserServiceImpl implements UserService {
         var user = userRepository.findUserByRole(adminRole);
         if (user.isEmpty())
             userRepository.save(new User(username, new BCryptPasswordEncoder().encode(password),
-                    email, firstname, lastname, adminRole, null, null, null, false));
+                    email, firstname, lastname, adminRole, null, null, false));
     }
 
     @Override
@@ -67,20 +68,14 @@ public class UserServiceImpl implements UserService {
         return username -> userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User '" + username + "' not found"));
     }
-    public List<User> findUsersByPartialUsername(String partialUsername) {
-        System.out.println("Searching for users with partial username: " + partialUsername);
-        List<User> users = userRepository.findByUsernameContaining(partialUsername);
-        System.out.println("Found " + users.size() + " users.");
-//        List<User> users1 = userRepository.findByUsername(Username);
-//        System.out.println("Found " + users1.size() + " users.");
-        return users;
-        //return userRepository.findByUsernameContaining(partialUsername);
+    public List<User> findUsersByPartialUsername(String partialUsername, String roleName) {
+        log.info("Searching for users with partial username: " + partialUsername);
+        if (Objects.equals(roleName, roleAdminName)) {
+            return userRepository.findByUsernameContaining(partialUsername);
+        }
+        return userRepository.findByRoleRoleNameAndUsernameContainingIgnoreCase(roleName, partialUsername);
     }
 
-    @Override
-    public List<User> searchUsers(String query) {
-        return null;//~~
-    }
 
     @Override
     public int getTotalUsers(String query) {
@@ -88,24 +83,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public JwtResponse updateUser(UpdateUserInfoRequest infoRequest, User user) {
+    public UsualResponse getNotify(User user) {
+        Set<Notify> notifications = user.getNotifications();
+        return UsualResponse.success("Notification of current user:", notifications);
+    }
+
+    @Override
+    public UsualResponse updateUser(UpdateUserInfoRequest infoRequest, User user) {
+        String msg;
         try {
             // The Email change can be separate with this later with the 3rd party authentication
             //  but now just using this change
             String oldUsername = user.getUsername();
-            user.updateInfo(infoRequest.getUsername(), infoRequest.getFirstname(), infoRequest.getLastname(),
-                    infoRequest.getEmail(), infoRequest.getBio(), infoRequest.getImage(), infoRequest.getDateOfBirth());
+            String newUsername = infoRequest.getUsername();
+            user.updateInfo(newUsername, infoRequest.getFirstname(), infoRequest.getLastname(),
+                    infoRequest.getEmail(), infoRequest.getBio(), infoRequest.getImage());
             userRepository.save(user);
+            JwtResponse response = JwtResponse.fromUserWithoutToken(user);
             // The jwt is checked, so we need to update token with new username here if it is modified
-            if (!Objects.equals(oldUsername,user.getUsername())) {
-                jwtService.refreshToken(user, false);
+            if (!Objects.equals(oldUsername,newUsername)) {
+                String token = user.getToken().getCompressedTokenData();
+                String refreshToken = user.getToken().getCompressedRefreshTokenData();
+                jwtService.changeUsernameInToken(token, newUsername, user, true);
+                jwtService.changeUsernameInToken(refreshToken, newUsername, user, false);
+                response = JwtResponse.fromUserWithToken(user);
             }
-            String msg = "Update information successfully!";
+            msg = "Update information successfully! Redirect to homepage...";
             log.info(msg);
-            return JwtResponse.fromUserWithToken(user, msg);
+            return UsualResponse.success(msg, response);
         } catch (Exception e) {
-            log.error("There is error occurs in update user information: " + e.getMessage());
-            return null;
+            msg = "There is error occurs in update user information: " + e.getMessage();
+            log.error(msg);
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, msg);
         }
     }
 }

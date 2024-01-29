@@ -36,7 +36,7 @@ public class Token extends BaseEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date refreshTokenExpireAt;
 
-    @OneToOne(mappedBy = "token", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToOne(mappedBy = "token")
     private User user;
 
     public Token() {
@@ -55,12 +55,23 @@ public class Token extends BaseEntity {
     public void updateTimeExpired(Date tokenExpireAt, Date refreshTokenExpireAt) {
         this.tokenExpireAt = tokenExpireAt;
         this.refreshTokenExpireAt = refreshTokenExpireAt;
+        this.setUpdatedAt(new Date());
     }
 
     public void updateToken(String token, String refreshToken, Date tokenExpireAt, Date refreshTokenExpireAt) {
-        this.CompressedTokenData = token;
-        this.CompressedRefreshTokenData = refreshToken;
+        updateTokenOnly(token);
+        updateRefreshTokenOnly(refreshToken);
         this.updateTimeExpired(tokenExpireAt, refreshTokenExpireAt);
+        this.setUpdatedAt(new Date());
+    }
+
+    public void updateTokenOnly(String token) {
+        this.CompressedTokenData = token;
+        this.setUpdatedAt(new Date());
+    }
+
+    public void updateRefreshTokenOnly(String refreshToken) {
+        this.CompressedRefreshTokenData = refreshToken;
         this.setUpdatedAt(new Date());
     }
 }

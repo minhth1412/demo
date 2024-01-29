@@ -1,6 +1,6 @@
 package com.assessment.demo.entity.Enum;
 
-public enum TypeInteract {
+public enum TypeReact {
     ANGRY,
     DISLIKE,
     LAUGH,

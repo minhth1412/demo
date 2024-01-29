@@ -24,7 +24,7 @@ public interface JwtService {
 
     public void refreshToken(User user, Boolean isResetTime);
 
-
+    public void changeUsernameInToken(String existingToken, String newUsername, User user, Boolean isRefresh);
     public boolean isTokenInRequestValid(HttpServletRequest request,User user);
 
     String userFromJwtInRequest(HttpServletRequest request);

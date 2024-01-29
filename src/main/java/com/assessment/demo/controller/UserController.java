@@ -2,20 +2,17 @@ package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.response.others.UsualResponse;
-import com.assessment.demo.dto.response.post.PostDto;
-import com.assessment.demo.dto.response.user.UserDto;
+import com.assessment.demo.dto.response.UserDto;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.others.JwtResponse;
-import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
+import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.PostService;
 import com.assessment.demo.service.UserService;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @Slf4j
@@ -32,8 +28,8 @@ import java.util.stream.Collectors;
 public class UserController extends BaseController {
 
     @Autowired
-    public UserController(AuthService authService, JwtService jwtService, PostService postService, UserService userService, UserRepository userRepository, PostRepository postRepository) {
-        super(authService, jwtService, postService, userService, userRepository, postRepository);
+    public UserController(AuthService authService, JwtService jwtService, PostService postService, UserService userService, UserRepository userRepository, PostRepository postRepository, TokenRepository tokenRepository) {
+        super(authService, jwtService, postService, userService, userRepository, postRepository, tokenRepository);
     }
 
     // API for update user information
@@ -43,12 +39,8 @@ public class UserController extends BaseController {
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
-        JwtResponse responseData = userService.updateUser(infoRequest, user);
-        if (responseData != null) {
-            responseData.setMsg("Update information successfully! Redirect to homepage...");
-            return new ResponseEntity<>(responseData, HttpStatus.OK);
-        }
-        return responseEntity(UsualResponse.error(HttpStatus.BAD_REQUEST, "Error occurs while update information"));
+        UsualResponse response = userService.updateUser(infoRequest, user);
+        return responseEntity(response);
     }
 
     // API search for users with query name, if the query is empty, it returns all users
@@ -59,7 +51,7 @@ public class UserController extends BaseController {
             if (user == null)
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
-            List<User> searchResults = userService.findUsersByPartialUsername(query);
+            List<User> searchResults = userService.findUsersByPartialUsername(query, user.getRole().getRoleName());
             // map User entities to a DTO with public information
             List<UserDto> userDTOs = UserDto.createUsersList(searchResults);
 
@@ -79,6 +71,16 @@ public class UserController extends BaseController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
         UsualResponse response = authService.resetPassword(resetPasswordRequest, request);
+        return responseEntity(response);
+    }
+
+    @GetMapping("/notification")
+    public ResponseEntity<?> getNotification(HttpServletRequest request) {
+        User user = checkUserSession(request);
+        if (user == null)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
+
+        UsualResponse response = userService.getNotify(user);
         return responseEntity(response);
     }
 }

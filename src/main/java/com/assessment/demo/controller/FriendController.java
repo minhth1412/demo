@@ -3,6 +3,7 @@ package com.assessment.demo.controller;
 import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
+import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,8 +29,8 @@ public class FriendController extends BaseController {
 
     @Autowired
     public FriendController(AuthService authService, JwtService jwtService, PostService postService, UserService userService, UserRepository userRepository, PostRepository postRepository,
-                            FriendService friendService) {
-        super(authService, jwtService, postService, userService, userRepository, postRepository);
+                            FriendService friendService, TokenRepository tokenRepository) {
+        super(authService, jwtService, postService, userService, userRepository, postRepository, tokenRepository);
         this.friendService = friendService;
     }
 

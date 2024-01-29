@@ -1,4 +1,4 @@
-package com.assessment.demo.dto.response.post;
+package com.assessment.demo.dto.response;
 
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.Post;
@@ -9,12 +9,14 @@ import lombok.Data;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
 @Builder
 public class PostDto {
+    private UUID postID;
     private String author;
     private String authorImage;
     private Date createdAt;
@@ -22,7 +24,7 @@ public class PostDto {
     private String title;
     private String content;     // This may include media, photo,...
 
-    private int interactCount;
+    private int reactCount;
     private int commentCount;
     private int sharedCount;
 
@@ -40,7 +42,7 @@ public class PostDto {
                         .createdAt(post.getCreatedAt())
                         .title(post.getTitle())
                         .content(post.getContent())
-                        .interactCount(post.getInteracts().size())
+                        .reactCount(post.getReacts().size())
                         .commentCount(post.getComments().size())
                         //.sharedCount(post.getSharedCount())
                         .status(post.getStatus())

@@ -40,12 +40,9 @@ public class SignupRequest {
     private String repassword;
 
     //..................
-
     private String role = null;
 
     // Nullable
-    private LocalDate dateOfBirth;
-
     private String bio;
 
     private String image;

@@ -1,11 +1,10 @@
-package com.assessment.demo.dto.response.user;
+package com.assessment.demo.dto.response;
 
 import com.assessment.demo.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Data

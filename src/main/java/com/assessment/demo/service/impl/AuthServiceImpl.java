@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import javax.security.auth.login.AccountLockedException;
 import java.util.Date;
 import java.util.Objects;
+import java.util.UUID;
 
 import static com.assessment.demo.util.EmailUtils.isEmail;
 
@@ -68,13 +69,12 @@ public class AuthServiceImpl implements AuthService {
                     new Role(roleUserId, roleUserName),
                     signupRequest.getBio(),
                     signupRequest.getImage(),
-                    signupRequest.getDateOfBirth(),
                     false);
             userRepository.save(user);
 
             String msg = "New account is created successfully! Return to the login page...";
             log.info(msg);
-            return UsualResponse.success(JwtResponse.fromUserWithoutToken(user, msg));
+            return UsualResponse.success(msg, JwtResponse.fromUserWithoutToken(user));
         } catch (ValidationException e) {
             log.error("Validation error: " + e.getMessage());
             return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -94,19 +94,23 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("Invalid username or password");
             else if (!user.getStatus())
                 throw new AccountLockedException("Your account is locked and can not be used right now!");
-            else if (user.getIsOnline())
-                return UsualResponse.error(HttpStatus.BAD_REQUEST, "You are already logged in!");
-            else
-                user.setIsOnline(true);
+            else if (user.getIsOnline()) {
+                Token userToken = user.getToken();
+                if (userToken == null || (tokenRepository.findByTokenId(userToken.getTokenId()).isEmpty())) {
+                    log.error("The situation that the user logged in but does not have a token appear. " +
+                            "It may be due to the project restarting while users have not logged out");
+                } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "You are already logged in!");
+            } else user.setIsOnline(true);
 
             // After authentication phase, update user token in database
+            // Each time login, user will have a new jwt and refresh token
             updateTokenForLoggingInUser(user);
 
             userRepository.save(user);
             String msg = "Login successfully!";
             log.info(msg);
             // return a response with public information of current user
-            return UsualResponse.success(JwtResponse.fromUserWithToken(user, msg));
+            return UsualResponse.success(msg, JwtResponse.fromUserWithToken(user));
         } catch (AccountLockedException | RuntimeException e) {
             log.error(e.getMessage());
             return UsualResponse.error(HttpStatus.BAD_REQUEST, e.getMessage());
@@ -132,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
                     && Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT)) {
                 jwtService.refreshToken(user, true);
                 log.info(msg);
-                return UsualResponse.success(JwtResponse.fromUserWithToken(user, msg));
+                return UsualResponse.success(msg, JwtResponse.fromUserWithToken(user));
             } else {
                 msg = "Invalid token from request!";
                 if (!Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT))
@@ -169,22 +173,33 @@ public class AuthServiceImpl implements AuthService {
     // Apply for all accounts
     @Override
     public UsualResponse resetPassword(ResetPasswordRequest resetPasswordRequest, HttpServletRequest request) {
-        String msg = null;
+
         try {
+            String msg = null;
             if (resetPasswordRequest == null)
                 throw new InvalidJwtException("Invalid token");
+            String oldPassword = resetPasswordRequest.getOldPassword();
             String password = resetPasswordRequest.getNewPassword();
             String repassword = resetPasswordRequest.getConfirmNewPassword();
             User user = extractUserFromRequest(request);
             if (user == null)
                 msg = "Bad credentials!";
-            else if (!Objects.equals(resetPasswordRequest.getOldPassword(), passwordEncoder.encode(user.getPassword())))
-                msg = "Wrong old password!";
             else
                 msg = getErrorFromPassword(password, repassword);
-            if (msg == null)
+            if (msg != null)
+                return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
+            if (passwordEncoder.matches(oldPassword, user.getPassword())) {
+                log.info("Old password match");
+                user.setPassword(passwordEncoder.encode(password));
+                userRepository.save(user);
                 return UsualResponse.success("Your password is changed!");
+            }
+            log.info(passwordEncoder.encode(oldPassword));
+            log.info(user.getPassword());
+            log.info("Password old and new not match");
+            msg = "Wrong old password!";
             return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
+
         } catch (InvalidJwtException e) {
             log.error(e.getMessage());
             return UsualResponse.error(HttpStatus.UNAUTHORIZED, "Invalid token!");

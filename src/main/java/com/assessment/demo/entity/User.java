@@ -1,6 +1,8 @@
 package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.base.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Null;
@@ -31,8 +33,8 @@ public class User extends BaseEntity implements UserDetails {              // In
     private Role role;
 
     // If 1 user is removed, the token of that user will be deleted too
-    @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "tokenId")
+    @OneToOne
+    @JoinColumn(name = "tokenId", referencedColumnName = "tokenId")
     private Token token;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -74,11 +76,8 @@ public class User extends BaseEntity implements UserDetails {              // In
     @Column(name = "image")
     private String image;
 
-    @Column(name = "Date_of_birth", columnDefinition = "DATE")
-    private LocalDate dateOfBirth;
-
-    // More information
-    // gender, place, works, hobbies,......
+    // More information will be deployed later
+    // gender, date of birth, place, works, hobbies,......
 
     // Constructors
     public User() {
@@ -89,7 +88,7 @@ public class User extends BaseEntity implements UserDetails {              // In
 
     // Should create a new User with follow details in 1 line, not separate to maximize the performance
     public User(String username,String password,String email,String first_name,String last_name,Role role,
-                @Nullable String bio,@Nullable String image, @Nullable LocalDate dateOfBirth, boolean isOnline) {
+                @Nullable String bio,@Nullable String image, boolean isOnline) {
         // Create user with important details
         this();
         this.username = username;
@@ -105,11 +104,9 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.last_name = last_name;
         this.bio = bio;
         this.image = image;
-        this.dateOfBirth = dateOfBirth;
-
     }
 
-    public void updateInfo(String username, String first_name, String last_name, String email, String bio, String image, LocalDate dateOfBirth) {
+    public void updateInfo(String username, String first_name, String last_name, String email,@Nullable String bio,@Nullable String image) {
         // Not handle the unchanging update yet, will be deployed later
         this.username = username;
         this.first_name = first_name;
@@ -117,7 +114,6 @@ public class User extends BaseEntity implements UserDetails {              // In
         this.email = email;
         this.bio = bio;
         this.image = image;
-        this.dateOfBirth = dateOfBirth;
     }
 
     @Override

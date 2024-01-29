@@ -2,7 +2,7 @@ package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.base.BaseEntity;
-import com.assessment.demo.entity.base.EntityWithInteracts;
+import com.assessment.demo.entity.base.EntityWithReacts;
 import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -14,7 +14,7 @@ import java.util.*;
 @Data
 @Entity
 @Table(name = "Post")
-public class Post extends BaseEntity implements EntityWithInteracts {     // In progress
+public class Post extends BaseEntity implements EntityWithReacts {     // In progress
     // Primary key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -51,33 +51,25 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
     private String location;
 
     // Handle foreign keys
-    // The get method and addInteract, removeInteract are
-    //  implemented on EntityWithInteracts
+    // The get method and addReact, removeReact are
+    //  implemented on EntityWithReacts
     @ManyToMany(mappedBy = "posts")
-    private Set<Interact> interacts = new HashSet<>();
+    private Set<React> reacts = new HashSet<>();
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "post")
     private List<Comment> comments = new ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "originalPostId")
+    private Post originalPost;
 
     // Constructors
     public Post(){
         super();
     }
 
-    /**
-     * Creates a Post object.
-     * The post timeStamp is set to the current date.
-     * The status default is PUBLIC.
-     *
-     * @param content The content of the post.
-     * @param title The title of the post, and this field is optional.
-     * @param image The image, this field can be development into situation: a post has many images (like Facebook) .
-     * @param location The optional location added by user.
-     * @param author The user who created the post
-     *
-     */
     public Post(String content,@Nullable String title, @Nullable String image,
-                @Nullable String location, User author) {
+                @Nullable String location, User author){//, @Nullable UUID parentPost) {
         // Generate these when calling new Post()
         super();
         this.postId = UUID.randomUUID();
@@ -88,6 +80,7 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
         this.isDeleted = false;
         this.image = image;
         this.location = location;
+        this.originalPost = null;
     }
 
     // Method for update post status, include Delete post
@@ -96,10 +89,19 @@ public class Post extends BaseEntity implements EntityWithInteracts {     // In 
         this.updateDate();
     }
 
-    // Override from entityWithInteracts
+    public Post sharePost(User author) {
+        // Create a new post representing the shared post
+        Post sharedPost = new Post(this.content, this.title, this.image, this.location, author);
+        sharedPost.setOriginalPost(this);
+        sharedPost.updateStatus(PostStatus.PUBLIC); // Default status, can be edited later
+
+        return sharedPost;
+    }
+
     @Override
-    public Set<Interact> getInteracts() {
-        return interacts;
+    // Override from entityWithReacts
+    public Set<React> getReacts() {
+        return reacts;
     }
     // ...(later )
 }

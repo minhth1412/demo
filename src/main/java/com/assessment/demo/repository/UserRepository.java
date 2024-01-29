@@ -17,9 +17,7 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Boolean existsByUsername(String username);
 
-    List<User> findByRoleRoleNameNot(String roleName);
-
-    Optional<Token> findTokenByUsername(String token);
+    List<User> findByRoleRoleNameAndUsernameContainingIgnoreCase(String roleName, String partialUsername);
 
     Boolean existsByEmail(String email);
 
@@ -32,7 +30,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.userId = :userId")
     Optional<User> findByUserId(UUID userId);
 
-    @Query(value = "SELECT * FROM user u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', ?1, '%')) ESCAPE ''", nativeQuery = true)
+    @Query(value = "SELECT * FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', ?1, '%')) ESCAPE ''", nativeQuery = true)
     List<User> findByUsernameContaining(String partialUsername);
 
 //    @Query("SELECT u FROM User u WHERE u.email = :email")

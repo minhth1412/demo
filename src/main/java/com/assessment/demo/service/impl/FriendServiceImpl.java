@@ -9,10 +9,8 @@ import com.assessment.demo.repository.FriendRepository;
 import com.assessment.demo.repository.NotifyRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.FriendService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,8 +25,8 @@ public class FriendServiceImpl implements FriendService {
 
     private boolean areUsersHasStatus(User user1, User user2, RequestStatus status) {
         // Check if user1 and user2 have status
-        List<Friend> friends = friendRepository.findBySenderIdAndReceiverIdAndStatus(
-                user1.getUserId(), user2.getUserId(), status);
+        List<Friend> friends = friendRepository.findBySenderAndReceiverAndStatus(
+                user1, user2, status);
         return !friends.isEmpty();
     }
 
@@ -38,7 +36,7 @@ public class FriendServiceImpl implements FriendService {
             User receiveUser = userRepository.findByUserId(receiver).orElse(null);
             if (receiveUser == null)
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
-                        "This path does not exist!");
+                        "User not found!");
 
             if (areUsersHasStatus(requester, receiveUser, RequestStatus.ACCEPTED))
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
@@ -64,22 +62,22 @@ public class FriendServiceImpl implements FriendService {
             User requester = userRepository.findByUserId(userSendRequest).orElse(null);
             if (requester == null)
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
-                        "This path does not exist!");
+                        "User not found!");
 
             if (areUsersHasStatus(requester, userAccept, RequestStatus.ACCEPTED))
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
                         "You two have already been friend of each other before!");
 
             else if (areUsersHasStatus(requester, userAccept, RequestStatus.PENDING)) {
-                Friend friendRequest = friendRepository.findBySenderIdAndReceiverIdAndStatus(
-                        requester.getUserId(), userAccept.getUserId(), RequestStatus.PENDING).get(0);
+                Friend friendRequest = friendRepository.findBySenderAndReceiverAndStatus(
+                        requester, userAccept, RequestStatus.PENDING).get(0);
                 friendRequest.updateStatus(RequestStatus.ACCEPTED);
                 friendRepository.save(friendRequest);
 
                 Notify notification = new Notify(requester, "You and " + requester.getUsername() + " now are friends!");
                 notifyRepository.save(notification);
                 return UsualResponse.success("Friend request sent successfully");
-            } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Bad request!");
+            } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Friend request not found!");
 
         } catch (Exception e) {
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while retrieving the accept friendship.");
@@ -92,22 +90,22 @@ public class FriendServiceImpl implements FriendService {
             User requester = userRepository.findByUserId(userSendRequest).orElse(null);
             if (requester == null)
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
-                        "This path does not exist!");
+                        "User not found!");
 
             if (areUsersHasStatus(requester, userReject, RequestStatus.ACCEPTED))
                 return UsualResponse.error(HttpStatus.BAD_REQUEST,
                         "You two have already been friend of each other before!");
 
             else if (areUsersHasStatus(requester, userReject, RequestStatus.PENDING)) {
-                Friend friendRequest = friendRepository.findBySenderIdAndReceiverIdAndStatus(
-                        requester.getUserId(), userReject.getUserId(), RequestStatus.PENDING).get(0);
+                Friend friendRequest = friendRepository.findBySenderAndReceiverAndStatus(
+                        requester, userReject, RequestStatus.PENDING).get(0);
                 friendRequest.updateStatus(RequestStatus.DENIED);
                 friendRepository.save(friendRequest);
 
                 Notify notification = new Notify(requester, "You rejected friend request from " + requester.getUsername());
                 notifyRepository.save(notification);
                 return UsualResponse.success("Friend request rejected");
-            } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Bad request!");
+            } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Friend request not found!");
 
         } catch (Exception e) {
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while retrieving the reject friendship.");
