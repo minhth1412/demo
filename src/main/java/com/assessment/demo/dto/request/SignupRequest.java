@@ -28,7 +28,7 @@ public class SignupRequest {
     @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "Username must contain only letters and numbers")
     @Size(min = 3, message = "Username must have at least 3 characters")
     @Size(max = 20, message = "Username must have less than 20 characters")
-    //@UniqueUsername //Custom annotation for uniqueness validation
+    //@UniqueUsername //Custom annotation for uniqueness validation, but this will be handled when comes to db, not here
     private String username;
 
     @NotBlank(message = "Password cannot be blank")
@@ -43,7 +43,7 @@ public class SignupRequest {
     private String role = null;
 
     // Nullable
+    private String image;
     private String bio;
 
-    private String image;
 }

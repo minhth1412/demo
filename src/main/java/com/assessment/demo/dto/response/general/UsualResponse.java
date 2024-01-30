@@ -1,4 +1,4 @@
-package com.assessment.demo.dto.response.others;
+package com.assessment.demo.dto.response.general;
 
 import lombok.Builder;
 import lombok.Data;

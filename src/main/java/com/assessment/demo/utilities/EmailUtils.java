@@ -1,4 +1,4 @@
-package com.assessment.demo.util;
+package com.assessment.demo.utilities;
 
 import java.util.regex.Pattern;
 

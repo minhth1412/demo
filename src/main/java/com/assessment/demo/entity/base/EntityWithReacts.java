@@ -19,6 +19,7 @@ public interface EntityWithReacts {
     // The like will be saved in db instead of deleting for tracking history purpose
     default void removeReact(React react) {
         getReacts().remove(react);
-        react.setStatus(false);
+        react.setStatus(true);
     }
+
 }

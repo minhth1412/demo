@@ -1,6 +1,6 @@
 package com.assessment.demo.service.impl;
 
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.Enum.RequestStatus;
 import com.assessment.demo.entity.Friend;
 import com.assessment.demo.entity.Notify;

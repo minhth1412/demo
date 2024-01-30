@@ -1,8 +1,11 @@
 package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.Enum.TypeReact;
+import com.assessment.demo.entity.base.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -10,7 +13,8 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "React")
-public class React {
+@EqualsAndHashCode(callSuper = true)
+public class React extends BaseEntity {
     // Primary key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -47,18 +51,48 @@ public class React {
     )
     private Set<Post> posts = new HashSet<>();
 
+
+    public React() {
+        super();
+    }
+
     // Constructors
     public React(String typeReact) {
         // Generate a new UUID for the user during object creation
-        super();
+        this();
         this.reactId = UUID.randomUUID();
         this.status = true;
         this.typeReact = TypeReact.valueOf(typeReact);
     }
 
-    // This method return: (This should be placed in ReactService
+    // This method return: (This should be used in ReactService)
     // + true: this like belongs to a post
     // + false: this like belongs to a comment
-    // public Boolean isReactWithPost() {return this.post != null;}
+    public Boolean belongsToPost() {
+        return this.posts != null && !this.posts.isEmpty();
+    }
+
+    public void addComment(Comment comment) {
+        this.comments.add(comment);
+        comment.getReacts().add(this);
+    }
+
+    // Add a method to remove a comment from the set
+    public void removeComment(Comment comment) {
+        this.comments.remove(comment);
+        comment.getReacts().remove(this);
+    }
+
+    // Add a method to add a post to the set
+    public void addPost(Post post) {
+        this.posts.add(post);
+        post.getReacts().add(this);
+    }
+
+    // Add a method to remove a post from the set
+    public void removePost(Post post) {
+        this.posts.remove(post);
+        post.getReacts().remove(this);
+    }
 }
 

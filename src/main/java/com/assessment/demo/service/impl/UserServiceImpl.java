@@ -1,8 +1,8 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
-import com.assessment.demo.dto.response.others.JwtResponse;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.JwtResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.Notify;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.entity.User;
@@ -84,8 +84,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UsualResponse getNotify(User user) {
         try {
-            List<Notify> notifications = notifyRepository.getByUser(user);
-            return UsualResponse.success("Notification of current user:", notifications);
+            List<Notify> notifications = notifyRepository.getByUser(user);return UsualResponse.success("Notification of current user:", notifications);
         } catch (Exception e) {
             log.info(e.getMessage());
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Error when getting your notifications");
@@ -106,8 +105,8 @@ public class UserServiceImpl implements UserService {
             JwtResponse response = JwtResponse.fromUserWithoutToken(user);
             // The jwt is checked, so we need to update token with new username here if it is modified
             if (!Objects.equals(oldUsername,newUsername)) {
-                String token = user.getToken().getCompressedTokenData();
-                String refreshToken = user.getToken().getCompressedRefreshTokenData();
+                String token = user.getToken().getTokenData();
+                String refreshToken = user.getToken().getRefreshTokenData();
                 jwtService.changeUsernameInToken(token, newUsername, user, true);
                 jwtService.changeUsernameInToken(refreshToken, newUsername, user, false);
                 response = JwtResponse.fromUserWithToken(user);

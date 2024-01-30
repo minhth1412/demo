@@ -1,6 +1,6 @@
 package com.assessment.demo.service;
 
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.User;
 
 import java.util.UUID;

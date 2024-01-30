@@ -2,9 +2,7 @@ package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.request.ResetPasswordRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
-import com.assessment.demo.dto.response.others.JwtResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 
 import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.TokenRepository;
@@ -18,7 +16,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;

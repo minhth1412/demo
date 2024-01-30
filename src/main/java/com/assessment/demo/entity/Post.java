@@ -3,6 +3,7 @@ package com.assessment.demo.entity;
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.base.BaseEntity;
 import com.assessment.demo.entity.base.EntityWithReacts;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -61,7 +62,13 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
 
     @ManyToOne
     @JoinColumn(name = "originalPostId")
+    @JsonIgnore
     private Post originalPost;
+
+    // Shared posts relationship
+    @OneToMany(mappedBy = "originalPost", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Post> sharedPosts = new ArrayList<>();
 
     // Constructors
     public Post(){
@@ -90,11 +97,10 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
     }
 
     public Post sharePost(User author) {
-        // Create a new post representing the shared post
         Post sharedPost = new Post(this.content, this.title, this.image, this.location, author);
         sharedPost.setOriginalPost(this);
-        sharedPost.updateStatus(PostStatus.PUBLIC); // Default status, can be edited later
-
+        sharedPost.updateStatus(PostStatus.PUBLIC);
+        this.sharedPosts.add(sharedPost);
         return sharedPost;
     }
 
@@ -104,4 +110,16 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
         return reacts;
     }
     // ...(later )
+
+    public void addComment(Comment comment) {
+        this.getComments().add(comment);
+        comment.setPost(this);
+    }
+
+    // Remove a Like from the <EntityWithReacts>
+    // The like will be saved in db instead of deleting for tracking history purpose
+    public void removeComment(Comment comment) {
+        this.getComments().remove(comment);
+        comment.setIsDeleted(true);
+    }
 }

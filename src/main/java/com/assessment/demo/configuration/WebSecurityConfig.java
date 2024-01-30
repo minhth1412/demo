@@ -1,4 +1,4 @@
-package com.assessment.demo.config;
+package com.assessment.demo.configuration;
 
 import com.assessment.demo.security.AuthEntryPointJwt;
 import lombok.RequiredArgsConstructor;
@@ -18,20 +18,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class WebSecurityConfig {
-
-    //private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthEntryPointJwt unauthorizedHandler;
-    //private final UserService userService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) ->
-                        // Endpoint to CD token or create a new account
-
-                        authorize.requestMatchers("/api/**", "/post/**").permitAll()
-                                .requestMatchers("/admin/**").permitAll()
-                                .requestMatchers("/user/**").permitAll()
+                        authorize.requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers("/api/admin/**").permitAll()
+                                .requestMatchers("/api/user/**").permitAll()
                                 .anyRequest().authenticated());
 
         // If there is any exception that is not being authorized yet, it comes here:
@@ -39,26 +34,10 @@ public class WebSecurityConfig {
         // Using STATELESS = No Session save, each request will be treated independently
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // ~ 2 LINES below are no hope
-        //http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        //http.authenticationProvider(authenticationProvider());
         return http.build();
     }
 
-//    @Bean
-//    public AuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-//        authenticationProvider.setUserDetailsService(userService.userDetailsService());
-//        authenticationProvider.setPasswordEncoder(passwordEncoder());
-//        return authenticationProvider;
-//    }
-//
-//    @Bean
-//    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-//            throws Exception{
-//        return authenticationConfiguration.getAuthenticationManager();
-//    }
-
+    // Create Bean for auth usage
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

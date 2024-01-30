@@ -20,8 +20,8 @@ public class Notify extends BaseEntity {
     // Primary Key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "notificationId", columnDefinition = "BINARY(16)")
-    private UUID notificationId;
+    @Column(name = "notifyId", columnDefinition = "BINARY(16)")
+    private UUID notifyId;
 
     // Foreign Key
     @ManyToOne
@@ -42,7 +42,7 @@ public class Notify extends BaseEntity {
 
     public Notify(User user, String message) {
         this();
-        this.notificationId = UUID.randomUUID();
+        this.notifyId = UUID.randomUUID();
         this.user = user;
         this.message = message;
         this.isRead = false;        // This is new notification, so this is default value

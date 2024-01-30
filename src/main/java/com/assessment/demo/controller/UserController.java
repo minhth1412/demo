@@ -1,10 +1,9 @@
 package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.ResetPasswordRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.dto.response.UserDto;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
-import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.TokenRepository;
@@ -33,7 +32,7 @@ public class UserController extends BaseController {
     }
 
     // API for update user information
-    @PostMapping("/setting")
+    @PutMapping("/setting")
     public ResponseEntity<?> updateInfo(HttpServletRequest request, @RequestBody UpdateUserInfoRequest infoRequest) {
         User user = checkUserSession(request);
         if (user == null)

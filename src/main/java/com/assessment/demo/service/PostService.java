@@ -3,10 +3,9 @@ package com.assessment.demo.service;
 
 import com.assessment.demo.dto.request.PostRequest;
 import com.assessment.demo.dto.request.ReactRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
-import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,7 @@ public interface PostService {
 
     public UsualResponse getPostByPostId(UUID postId);
 
-    UsualResponse addReaction(User user, UUID postId, ReactRequest reactRequest);
+    UsualResponse addReactionToAPost(User user, UUID postId, ReactRequest reactRequest);
 
     UsualResponse addComment(User user, UUID postId, Map<String, String> commentRequest);
 

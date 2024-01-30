@@ -1,6 +1,6 @@
 package com.assessment.demo.controller;
 
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.repository.PostRepository;
 import com.assessment.demo.repository.TokenRepository;
@@ -9,7 +9,6 @@ import com.assessment.demo.service.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -72,7 +71,7 @@ public class FriendController extends BaseController {
 //    @DeleteMapping("/unfriend")
 //    public ResponseEntity<?> removeFriend(@PathVariable("receiveUserId") UUID receiver,
 //                                          HttpServletRequest request) {
-//        User user = checkUserSession(request);
+//        User user = checkUserSession(request, false);
 //        if (user ==null)
 //             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 //

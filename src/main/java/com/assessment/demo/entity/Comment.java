@@ -7,7 +7,9 @@ import lombok.Data;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 
-import java.util.*;
+import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -48,10 +50,14 @@ public class Comment extends BaseEntity implements EntityWithReacts {     // DON
     @ManyToMany(mappedBy = "comments")
     private Set<React> reacts = new HashSet<>();
 
+    public Comment() {
+        super();
+    }
+
     // Constructors
     public Comment(Post post, @Nullable Comment replyTo, String content, User user) {
         // Generate a new UUID for the user during object creation
-        super();
+        this();
         this.commentId = UUID.randomUUID();
         this.isDeleted = false;
         this.replyTo = replyTo;         // Even equals null

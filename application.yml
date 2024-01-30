@@ -5,9 +5,9 @@ spring:
     refreshTokenLifespan: 864000000    # 240 hours = 10 days #
   account:
     admin:
-      username: admin
-      password: admin
-      email: admin@gmeil.com
+      username: Admin
+      password: Admin@123
+      email: admin@gmail.com
       firstname: admin
       lastname: istrator
   role_admin:

@@ -19,14 +19,14 @@ public class Token extends BaseEntity {
     private UUID tokenId;
 
     // ----------------------------------------------
-    // AFTER SUCCESSFULLY SET UP THE PLAIN TOKEN,
-    //  CHANGE INTO COMPRESS ONE OR SOMETHING ELSE
+    // In the future, will deploy methods
+    //  to shorten the token and refresh token
     // ----------------------------------------------
     @Column(name = "token")
-    private String CompressedTokenData;
+    private String tokenData;
 
     @Column(name = "refreshToken")
-    private String CompressedRefreshTokenData;
+    private String refreshTokenData;
 
     @Column(name = "tokenExpireAt", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
@@ -47,8 +47,8 @@ public class Token extends BaseEntity {
         super();
         this.updateTimeExpired(tokenExpireAt, refreshTokenExpireAt);
         this.tokenId = UUID.randomUUID();
-        this.CompressedTokenData = token;
-        this.CompressedRefreshTokenData = refreshToken;
+        this.tokenData = token;
+        this.refreshTokenData = refreshToken;
     }
 
     // Method to update new expiration time of current tokens
@@ -66,12 +66,12 @@ public class Token extends BaseEntity {
     }
 
     public void updateTokenOnly(String token) {
-        this.CompressedTokenData = token;
+        this.tokenData = token;
         this.setUpdatedAt(new Date());
     }
 
     public void updateRefreshTokenOnly(String refreshToken) {
-        this.CompressedRefreshTokenData = refreshToken;
+        this.refreshTokenData = refreshToken;
         this.setUpdatedAt(new Date());
     }
 }

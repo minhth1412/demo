@@ -1,6 +1,5 @@
 package com.assessment.demo.dto.response;
 
-import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
@@ -36,10 +35,14 @@ public class PostDto {
 
 
     public static PostDto createPostDto(Post post, User user) {
+        return createPostDto(post,user.getUsername(),user.getImage());
+    }
+
+    public static PostDto createPostDto(Post post, String author, String authorImage) {
         return PostDto.builder()
                 .postID(post.getPostId())
-                .author(user.getUsername())
-                .authorImage(user.getImage())
+                .author(author)
+                .authorImage(authorImage)
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .location(post.getLocation())

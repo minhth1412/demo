@@ -2,7 +2,7 @@ package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.PostRequest;
 import com.assessment.demo.dto.request.ReactRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.dto.response.PostDto;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
@@ -109,11 +109,9 @@ public class PostController extends BaseController{
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
-        UsualResponse response = postService.addReaction(user, postId, reactRequest);
+        UsualResponse response = postService.addReactionToAPost(user, postId, reactRequest);
         return responseEntity(response);
-
     }
-
 
     @PostMapping("/post/{postId}/comment")
     public ResponseEntity<?> commentAPost(@PathVariable UUID postId, @RequestBody Map<String, String> commentRequest, HttpServletRequest request){

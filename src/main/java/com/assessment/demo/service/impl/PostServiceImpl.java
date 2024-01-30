@@ -2,12 +2,13 @@ package com.assessment.demo.service.impl;
 
 import com.assessment.demo.dto.request.PostRequest;
 import com.assessment.demo.dto.request.ReactRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.dto.response.PostDto;
 import com.assessment.demo.entity.*;
 import com.assessment.demo.repository.*;
 import com.assessment.demo.service.PostService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
@@ -98,16 +100,22 @@ public class PostServiceImpl implements PostService {
                 UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
     }
 
+    // Future work: check if exist another react of current user with this post, change the reaction type:
+    // - If they have the same reactType, change the status of previous reaction into false
+    // - Else, change the previous reactType of that user to this post
     @Override
-    public UsualResponse addReaction(User user, UUID postId, ReactRequest reactRequest) {
+    public UsualResponse addReactionToAPost(User user, UUID postId, ReactRequest reactRequest) {
         Post post = postRepository.findByPostId(postId).orElse(null);
         if (post == null)
             return UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
-
+        // Handle duplicate react here, now it is auto add up for each reqwuest
+        //...
         React react = new React(reactRequest.getReactionType());
+        post.addReact(react);
+        Notify notify = new Notify(post.getAuthor(), "User " + user.getUsername() + " reacted on your post!");
         reactRepository.save(react);
-        Notify notice = new Notify(post.getAuthor(), "User " + user.getUsername() + " reacted on your post!");
-        notifyRepository.save(notice);
+        postRepository.save(post);
+        notifyRepository.save(notify);
         return UsualResponse.success("Reacted to the post successfully!");
     }
 
@@ -118,9 +126,12 @@ public class PostServiceImpl implements PostService {
             return UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
 
         Comment comment = new Comment(post, null, commentRequest.get("content"), user);
+        post.addComment(comment);
+        Notify notify = new Notify(post.getAuthor(), "User " + user.getUsername() + " commented on your post!");
+
         commentRepository.save(comment);
-        Notify notice = new Notify(post.getAuthor(), "User " + user.getUsername() + " commented on your post!");
-        notifyRepository.save(notice);
+        postRepository.save(post);
+        notifyRepository.save(notify);
         return UsualResponse.success("Comment added to the post successfully!");
     }
 
@@ -130,13 +141,10 @@ public class PostServiceImpl implements PostService {
         if (post == null)
             return UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
 
-        Post rePost = new Post(request.getContent(),request.getTitle(),
-                request.getImage(),request.getLocation(),user);
-        rePost.setOriginalPost(post);
+        Post rePost = post.sharePost(user);
         postRepository.save(rePost);
-        return UsualResponse.success("Your post is published",
-                PostDto.builder().postID(post.getPostId()).createdAt(post.getCreatedAt()).build());
-
+        return UsualResponse.success("You shared this post!",
+                PostDto.createPostDto(rePost, user));
     }
 
     @Override

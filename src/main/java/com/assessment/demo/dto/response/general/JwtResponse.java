@@ -1,4 +1,4 @@
-package com.assessment.demo.dto.response.others;
+package com.assessment.demo.dto.response.general;
 
 import com.assessment.demo.entity.User;
 import lombok.Builder;
@@ -28,8 +28,8 @@ public class JwtResponse {
                 .email(user.getEmail())
                 .role(user.getRole().getRoleName())
                 .userId(user.getUserId())
-                .token(user.getToken().getCompressedTokenData())
-                .refreshToken(user.getToken().getCompressedRefreshTokenData())
+                .token(user.getToken().getTokenData())
+                .refreshToken(user.getToken().getRefreshTokenData())
                 .build();
     }
 

@@ -1,11 +1,11 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.dto.request.ResetPasswordRequest;
-import com.assessment.demo.dto.response.others.UsualResponse;
+import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.Role;
 import com.assessment.demo.dto.request.LoginRequest;
 import com.assessment.demo.dto.request.SignupRequest;
-import com.assessment.demo.dto.response.others.JwtResponse;
+import com.assessment.demo.dto.response.general.JwtResponse;
 import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
 import com.assessment.demo.exception.InvalidJwtException;
@@ -14,7 +14,6 @@ import com.assessment.demo.repository.TokenRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
-import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +28,8 @@ import org.springframework.stereotype.Service;
 import javax.security.auth.login.AccountLockedException;
 import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 
-import static com.assessment.demo.util.EmailUtils.isEmail;
+import static com.assessment.demo.utilities.EmailUtils.isEmail;
 
 @Service
 @RequiredArgsConstructor
@@ -51,13 +49,13 @@ public class AuthServiceImpl implements AuthService {
     private String roleUserName;
 
     // Regex for password requirements
-    private static final String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$";
+    private static final String passwordRegex = "^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$";
 
     @Override
     public UsualResponse signup(SignupRequest signupRequest) {
         try {
             String err = getErrorFromSignup(signupRequest);
-
+            log.info("run into here");
             if (err != null)
                 throw new ValidationException(err);
             User user = new User(signupRequest.getUsername(),
@@ -133,15 +131,15 @@ public class AuthServiceImpl implements AuthService {
 
             // If the refresh token from the request that valid with current user logging in
             if (jwtService.isTokenInRequestValid(request, user)
-                    && Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT)) {
+                    && Objects.equals(user.getToken().getRefreshTokenData(), refreshJWT)) {
                 jwtService.refreshToken(user, true);
                 log.info(msg);
                 return UsualResponse.success(msg, JwtResponse.fromUserWithToken(user));
             } else {
                 msg = "Invalid token from request!";
-                if (!Objects.equals(user.getToken().getCompressedRefreshTokenData(), refreshJWT))
+                if (!Objects.equals(user.getToken().getRefreshTokenData(), refreshJWT))
                     msg = "Invalid token from request! @@@@@";
-                log.info(user.getToken().getCompressedRefreshTokenData());
+                log.info(user.getToken().getRefreshTokenData());
                 log.info(refreshJWT);
                 log.error(msg);
                 return UsualResponse.error(HttpStatus.BAD_REQUEST, msg);
@@ -230,9 +228,10 @@ public class AuthServiceImpl implements AuthService {
             msg = "Repassword must not be empty";
         else if (!password.equals(repassword))
             msg = "Password and repassword do not match";
-        else if (password.length() < 4)
-            msg = "Password must be at least 5 characters long";
+        else if (password.length() <= 5)
+            msg = "Password must be at least 6 characters long";
         else if (!password.matches(passwordRegex))
+            // This part can be separate to handle each requirement for the password using multi regex
             msg = "Password must have at least one uppercase letter, one lowercase letter, one digit and one special character";
         return msg;
     }

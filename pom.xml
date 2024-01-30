@@ -89,7 +89,7 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
-<!--use below dependency to convert java obj into JSON representation and vice versa-->
+        <!--use below dependency to convert java obj into JSON representation and vice versa-->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>

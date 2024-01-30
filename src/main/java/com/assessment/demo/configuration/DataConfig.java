@@ -1,4 +1,4 @@
-package com.assessment.demo.config;
+package com.assessment.demo.configuration;
 
 import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
