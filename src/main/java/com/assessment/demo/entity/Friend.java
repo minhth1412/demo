@@ -18,24 +18,28 @@ public class Friend extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "friendId", columnDefinition = "BINARY(16)")
-    private final UUID id;
+    private UUID id;
 
     // Foreign keys
     @ManyToOne
     @JoinColumn(name = "senderId")
-    private final User sender;
+    private User sender;
 
     @ManyToOne
     @JoinColumn(name = "receiverId")
-    private final User receiver;
+    private User receiver;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private RequestStatus status;
 
+    public Friend() {
+        super();
+    }
+
     // Constructors
     public Friend(User sender, User receiver) {
-        super();
+        this();
         this.id = UUID.randomUUID();
         this.sender = sender;
         this.receiver = receiver;

@@ -2,6 +2,7 @@ package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.Enum.RequestStatus;
 import com.assessment.demo.entity.base.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class Notify extends BaseEntity {
     // Foreign Key
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
+    @JsonIgnore // Ignore the user field during serialization
     private User user;
 
     // Other fields
@@ -34,8 +36,12 @@ public class Notify extends BaseEntity {
     @Column(name = "isRead", nullable = false)
     private Boolean isRead;
 
-    public Notify(User user, String message) {
+    public Notify() {
         super();
+    }
+
+    public Notify(User user, String message) {
+        this();
         this.notificationId = UUID.randomUUID();
         this.user = user;
         this.message = message;

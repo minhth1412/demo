@@ -34,13 +34,13 @@ public class FriendController extends BaseController {
         this.friendService = friendService;
     }
 
-    @PostMapping("/friend_request")
+    @GetMapping("/friend_request")
     public ResponseEntity<?> sendFriendRequest(@PathVariable("receiveUserId") UUID receiver,
                                                HttpServletRequest request) {
         User user = checkUserSession(request);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-
+        log.info("URL reached");
         UsualResponse response = friendService.sendRequest(user, receiver);
         return responseEntity(response);
     }

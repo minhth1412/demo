@@ -10,6 +10,7 @@ import com.assessment.demo.repository.NotifyRepository;
 import com.assessment.demo.repository.UserRepository;
 import com.assessment.demo.service.FriendService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class FriendServiceImpl implements FriendService {
     private final FriendRepository friendRepository;
@@ -52,6 +54,7 @@ public class FriendServiceImpl implements FriendService {
             notifyRepository.save(notification);
             return UsualResponse.success("Friend request sent successfully");
         } catch (Exception e) {
+            log.info(e.getMessage());
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while sending friend request.");
         }
     }
@@ -74,12 +77,13 @@ public class FriendServiceImpl implements FriendService {
                 friendRequest.updateStatus(RequestStatus.ACCEPTED);
                 friendRepository.save(friendRequest);
 
-                Notify notification = new Notify(requester, "You and " + requester.getUsername() + " now are friends!");
+                Notify notification = new Notify(requester, "You and " + requester.getUsername() + " are friends from now on!");
                 notifyRepository.save(notification);
                 return UsualResponse.success("Friend request sent successfully");
             } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Friend request not found!");
 
         } catch (Exception e) {
+            log.info(e.getMessage());
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while retrieving the accept friendship.");
         }
     }
@@ -102,12 +106,13 @@ public class FriendServiceImpl implements FriendService {
                 friendRequest.updateStatus(RequestStatus.DENIED);
                 friendRepository.save(friendRequest);
 
-                Notify notification = new Notify(requester, "You rejected friend request from " + requester.getUsername());
+                Notify notification = new Notify(requester, "Your friend request to " + requester.getUsername() + " has been rejected!");
                 notifyRepository.save(notification);
                 return UsualResponse.success("Friend request rejected");
             } else return UsualResponse.error(HttpStatus.BAD_REQUEST, "Friend request not found!");
 
         } catch (Exception e) {
+            log.info(e.getMessage());
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while retrieving the reject friendship.");
         }
     }

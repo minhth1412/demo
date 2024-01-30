@@ -1,15 +1,13 @@
 package com.assessment.demo.service.impl;
 
-import com.assessment.demo.dto.request.ResetPasswordRequest;
 import com.assessment.demo.dto.request.UpdateUserInfoRequest;
 import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.dto.response.others.UsualResponse;
 import com.assessment.demo.entity.Notify;
 import com.assessment.demo.entity.Role;
-import com.assessment.demo.entity.Token;
 import com.assessment.demo.entity.User;
+import com.assessment.demo.repository.NotifyRepository;
 import com.assessment.demo.repository.UserRepository;
-import com.assessment.demo.service.AuthService;
 import com.assessment.demo.service.JwtService;
 import com.assessment.demo.service.RoleService;
 import com.assessment.demo.service.UserService;
@@ -49,6 +47,7 @@ public class UserServiceImpl implements UserService {
     private String roleAdminName;
 
     private final UserRepository userRepository;
+    private final NotifyRepository notifyRepository;
     private final RoleService roleService;
     private final JwtService jwtService;
 
@@ -84,8 +83,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UsualResponse getNotify(User user) {
-        Set<Notify> notifications = user.getNotifications();
-        return UsualResponse.success("Notification of current user:", notifications);
+        try {
+            List<Notify> notifications = notifyRepository.getByUser(user);
+            return UsualResponse.success("Notification of current user:", notifications);
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Error when getting your notifications");
+        }
     }
 
     @Override

@@ -99,7 +99,7 @@ public class PostController extends BaseController{
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
         UsualResponse response = postService.getPostByPostId(postId);
-        return new ResponseEntity<>(response, response.getStatus());
+        return responseEntity(response);
 
     }
 
@@ -110,7 +110,7 @@ public class PostController extends BaseController{
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
         UsualResponse response = postService.addReaction(user, postId, reactRequest);
-        return new ResponseEntity<>(response, response.getStatus());
+        return responseEntity(response);
 
     }
 
@@ -122,7 +122,7 @@ public class PostController extends BaseController{
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
         UsualResponse response = postService.addComment(user, postId, commentRequest);
-        return new ResponseEntity<>(response, response.getStatus());
+        return responseEntity(response);
     }
 
 //    @PostMapping("/post/{postId}/share")
@@ -135,15 +135,13 @@ public class PostController extends BaseController{
 //        return new ResponseEntity<>(response, response.getStatus());
 //    }
 
-    @GetMapping("/post")
+    @GetMapping(value = {"/post", "/home"})
     public ResponseEntity<?> getPostInNewsFeed(HttpServletRequest request){
         User user = checkUserSession(request);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
-
         UsualResponse response = postService.getAllPosts();
-        return new ResponseEntity<>(response, response.getStatus());
-
+        return responseEntity(response);
     }
 
 }

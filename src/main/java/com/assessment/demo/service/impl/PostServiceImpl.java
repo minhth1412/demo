@@ -41,7 +41,8 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findByUserId(userId).orElse(null);
 
         if (user != null) {
-            return UsualResponse.success(user.getUsername(), postRepository.findByAuthor(user));
+            List<Post> Posts = postRepository.findByAuthor(user);
+            return UsualResponse.success(user.getUsername(), PostDto.createPostsList(Posts, user));
         } else {
             // Handle case where the user is not found
             return UsualResponse.success("This user does not have any posts!");
@@ -54,7 +55,7 @@ public class PostServiceImpl implements PostService {
                 request.getImage(),request.getLocation(),user);
         postRepository.save(post);
         return UsualResponse.success("Your post is published",
-                PostDto.builder().postID(post.getPostId()).createdAt(post.getCreatedAt()).build());
+                PostDto.createPostDto(post, user));
     }
 
     @Override
@@ -71,8 +72,9 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public UsualResponse getAllPosts() {
-        return UsualResponse.success("Welcome to news feed",
-                postRepository.findAll(Sort.by(Sort.Order.desc("createdAt"))));
+        List<Post> Posts = postRepository.findAll(Sort.by(Sort.Order.desc("createdAt")));
+        List<PostDto> allPostDTOs = PostDto.createPostsList(Posts);
+        return UsualResponse.success("Welcome to news feed", allPostDTOs);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.assessment.demo.dto.response;
 
+import com.assessment.demo.dto.response.others.JwtResponse;
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
@@ -21,6 +22,11 @@ public class PostDto {
     private String authorImage;
     private Date createdAt;
 
+    // nullable fields--------------
+    private Date updatedAt;
+    private String location;    // if the post writer added it into the post
+    // ------------------------------
+    private PostStatus status;
     private String title;
     private String content;     // This may include media, photo,...
 
@@ -28,27 +34,50 @@ public class PostDto {
     private int commentCount;
     private int sharedCount;
 
-    private PostStatus status;
 
-    // nullable fields
-    private Date updatedAt;
-    private String location;    // if the post writer added it into the post
+    public static PostDto createPostDto(Post post, User user) {
+        return PostDto.builder()
+                .postID(post.getPostId())
+                .author(user.getUsername())
+                .authorImage(user.getImage())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .location(post.getLocation())
+                .status(post.getStatus())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .reactCount(post.getReacts().size())
+                .commentCount(post.getComments().size())
+                //.sharedCount(post.getSharedCount())
+                .build();
+    }
 
     public static List<PostDto> createPostsList(List<Post> Posts, User user) {
         return Posts.stream()
-                .map(post -> PostDto.builder()
-                        .author(user.getUsername())
-                        .authorImage(user.getImage())
-                        .createdAt(post.getCreatedAt())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .reactCount(post.getReacts().size())
-                        .commentCount(post.getComments().size())
-                        //.sharedCount(post.getSharedCount())
-                        .status(post.getStatus())
-                        .updatedAt(post.getUpdatedAt())
-                        .location(post.getLocation())
-                        .build())
+                .map(post -> createPostDto(post, user))
                 .collect(Collectors.toList());
     }
+    public static PostDto createPostDto(Post post) {
+        return PostDto.builder()
+                .postID(post.getPostId())
+                .author(post.getAuthor().getUsername())
+                .authorImage(post.getAuthor().getImage())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
+                .location(post.getLocation())
+                .status(post.getStatus())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .reactCount(post.getReacts().size())
+                .commentCount(post.getComments().size())
+                //.sharedCount(post.getSharedCount())
+                .build();
+    }
+
+    public static List<PostDto> createPostsList(List<Post> Posts) {
+        return Posts.stream()
+                .map(PostDto::createPostDto)
+                .collect(Collectors.toList());
+    }
+
 }
