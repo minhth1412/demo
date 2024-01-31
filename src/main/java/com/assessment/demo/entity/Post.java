@@ -2,7 +2,6 @@ package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.Enum.PostStatus;
 import com.assessment.demo.entity.base.BaseEntity;
-import com.assessment.demo.entity.base.EntityWithReacts;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
@@ -15,7 +14,7 @@ import java.util.*;
 @Data
 @Entity
 @Table(name = "Post")
-public class Post extends BaseEntity implements EntityWithReacts {     // In progress
+public class Post extends BaseEntity {     // In progress
     // Primary key
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -25,7 +24,7 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
     // Foreign key
     // This is equals to primary key userId in User table
     @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "userId", referencedColumnName = "userId")
+    @JoinColumn(name = "userId")
     private User author;
 
     // nullable fields
@@ -58,6 +57,7 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
     private Set<React> reacts = new HashSet<>();
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "post")
+    @JsonIgnore
     private List<Comment> comments = new ArrayList<>();
 
     @ManyToOne
@@ -103,13 +103,6 @@ public class Post extends BaseEntity implements EntityWithReacts {     // In pro
         this.sharedPosts.add(sharedPost);
         return sharedPost;
     }
-
-    @Override
-    // Override from entityWithReacts
-    public Set<React> getReacts() {
-        return reacts;
-    }
-    // ...(later )
 
     public void addComment(Comment comment) {
         this.getComments().add(comment);

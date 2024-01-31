@@ -1,10 +1,11 @@
 package com.assessment.demo.service.impl;
 
 import com.assessment.demo.dto.request.PostRequest;
-import com.assessment.demo.dto.request.ReactRequest;
+import com.assessment.demo.dto.request.StringRequest;
 import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.dto.response.PostDto;
 import com.assessment.demo.entity.*;
+import com.assessment.demo.entity.Enum.TypeReact;
 import com.assessment.demo.repository.*;
 import com.assessment.demo.service.PostService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -104,36 +106,100 @@ public class PostServiceImpl implements PostService {
     // - If they have the same reactType, change the status of previous reaction into false
     // - Else, change the previous reactType of that user to this post
     @Override
-    public UsualResponse addReactionToAPost(User user, UUID postId, ReactRequest reactRequest) {
-        Post post = postRepository.findByPostId(postId).orElse(null);
-        if (post == null)
+    public UsualResponse addReactionToAPost(User user, UUID postId, StringRequest stringRequest) {
+        log.info("1");
+        Optional<Post> optionalPost = postRepository.findByPostId(postId);
+        // If post is not found in database, return error
+        if (optionalPost.isEmpty()) {
             return UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
-        // Handle duplicate react here, now it is auto add up for each reqwuest
-        //...
-        React react = new React(reactRequest.getReactionType());
-        post.addReact(react);
-        Notify notify = new Notify(post.getAuthor(), "User " + user.getUsername() + " reacted on your post!");
-        reactRepository.save(react);
-        postRepository.save(post);
-        notifyRepository.save(notify);
-        return UsualResponse.success("Reacted to the post successfully!");
+        }
+        log.info("2");
+        Post post = optionalPost.get();
+        TypeReact newTypeReact;
+
+        // If the input name did not match with any type in typeReact, return error
+        try {
+            newTypeReact = TypeReact.valueOf(stringRequest.getString().toUpperCase());
+            log.info("3");
+        } catch (IllegalArgumentException e) {
+            return UsualResponse.error(HttpStatus.BAD_REQUEST, "Invalid reaction type!");
+        }
+        // Check if user has already reacted the post:
+        Optional<React> existingReact = findUserReactForPost(user, post);
+        log.info("4");
+        // If result found
+        if (existingReact.isPresent()) {
+            React react = existingReact.get();
+            log.info("6");
+            if (react.getTypeReact() == newTypeReact) {
+                // User is reacting with the same type again, set status to false
+                log.info("7");
+                react.updateStatus(!react.getStatus());
+            } else {
+                // User is reacting with a different type, update the typeReact
+                log.info("8");
+                react.updateReaction(newTypeReact);
+            }
+            saveEntities(post, react);
+            log.info("9");
+            return UsualResponse.success("React updated successfully!");
+        } else {
+            // User hasn't reacted before, create a new reaction
+            log.info("10");
+            React newReact = new React(UUID.randomUUID(), newTypeReact, user);
+            log.info("12");
+            saveEntities(post, newReact);
+            log.info("13");
+            return UsualResponse.success("Reacted to the post successfully!");
+        }
     }
+
+    // Find the user's existing reaction for the post
+    private Optional<React> findUserReactForPost(User user, Post post) {
+        try {
+            return post.getReacts().stream()
+                    .filter(existingReact -> existingReact.getSender().equals(user))
+                    .findFirst();
+        } catch(NullPointerException e){
+            return Optional.empty();
+        }
+    }
+
+    // Method to create new notification for the other user, and save the objects into database through the repositories
+    private void saveEntities(Post post, React react) {
+        Notify notify = new Notify(post.getAuthor(), "User " + react.getSender().getUsername() + " reacted on your post!");
+        log.info("12");
+        reactRepository.save(react);
+        log.info("13");
+        postRepository.save(post);
+        log.info("14");
+        notifyRepository.save(notify);
+        log.info("15");
+    }
+
+
+
+
+
+// ...
 
     @Override
-    public UsualResponse addComment(User user, UUID postId, Map<String, String> commentRequest) {
-        Post post = postRepository.findByPostId(postId).orElse(null);
-        if (post == null)
-            return UsualResponse.error(HttpStatus.BAD_REQUEST, "Post not found!");
+    public UsualResponse addComment(User user, UUID postId, StringRequest commentRequest) {
+        Optional<Post> optionalPost = postRepository.findByPostId(postId);
 
-        Comment comment = new Comment(post, null, commentRequest.get("content"), user);
-        post.addComment(comment);
-        Notify notify = new Notify(post.getAuthor(), "User " + user.getUsername() + " commented on your post!");
+        optionalPost.ifPresent(post -> {
+            Comment comment = new Comment(post, null, commentRequest.getString(), user);
+            post.addComment(comment);
+            Notify notify = new Notify(post.getAuthor(), "User " + user.getUsername() + " commented on your post!");
 
-        commentRepository.save(comment);
-        postRepository.save(post);
-        notifyRepository.save(notify);
-        return UsualResponse.success("Comment added to the post successfully!");
+            commentRepository.save(comment);
+            notifyRepository.save(notify);
+        });
+
+        return optionalPost.map(post -> UsualResponse.success("Comment added to the post successfully!"))
+                .orElseGet(() -> UsualResponse.error(HttpStatus.NOT_FOUND, "Post not found!"));
     }
+
 
     @Override
     public UsualResponse sharePost(User user, UUID postId, PostRequest request) {

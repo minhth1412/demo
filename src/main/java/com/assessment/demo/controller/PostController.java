@@ -1,7 +1,7 @@
 package com.assessment.demo.controller;
 
 import com.assessment.demo.dto.request.PostRequest;
-import com.assessment.demo.dto.request.ReactRequest;
+import com.assessment.demo.dto.request.StringRequest;
 import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.dto.response.PostDto;
 import com.assessment.demo.entity.Post;
@@ -104,17 +104,17 @@ public class PostController extends BaseController{
     }
 
     @PostMapping("/post/{postId}/react")
-    public ResponseEntity<?> reactWithAPost(@PathVariable UUID postId, @RequestBody ReactRequest reactRequest, HttpServletRequest request){
+    public ResponseEntity<?> reactWithAPost(@PathVariable UUID postId,@RequestBody StringRequest stringRequest,HttpServletRequest request){
         User user = checkUserSession(request);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");
 
-        UsualResponse response = postService.addReactionToAPost(user, postId, reactRequest);
+        UsualResponse response = postService.addReactionToAPost(user, postId,stringRequest);
         return responseEntity(response);
     }
 
     @PostMapping("/post/{postId}/comment")
-    public ResponseEntity<?> commentAPost(@PathVariable UUID postId, @RequestBody Map<String, String> commentRequest, HttpServletRequest request){
+    public ResponseEntity<?> commentAPost(@PathVariable UUID postId, @RequestBody StringRequest commentRequest, HttpServletRequest request){
         User user = checkUserSession(request);
         if (user == null)
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token!");

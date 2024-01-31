@@ -1,18 +1,14 @@
 package com.assessment.demo.entity;
 
 import com.assessment.demo.entity.base.BaseEntity;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.common.lang.Nullable;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Null;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDate;
 import java.util.*;
 
 @EqualsAndHashCode(callSuper = true)
@@ -38,7 +34,11 @@ public class User extends BaseEntity implements UserDetails {              // In
     private Token token;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private Set<Notify> notifications;
+    private List<Notify> notifications;
+
+    @Transient
+    @OneToMany(mappedBy = "author")
+    private List<Comment> comments;
 
     // The rest fields
     // 1. Required non-null field

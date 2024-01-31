@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public class React extends BaseEntity {
 
     // Non-null fields
     @Column(name = "status", nullable = false)
-    private Boolean status;
+    private Boolean status = true;
 
     @Column(name = "typeReact", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -57,12 +58,17 @@ public class React extends BaseEntity {
     }
 
     // Constructors
-    public React(String typeReact) {
-        // Generate a new UUID for the user during object creation
+    public React(UUID id, TypeReact newTypeReact, User user) {
         this();
-        this.reactId = UUID.randomUUID();
+        this.reactId = id;
         this.status = true;
-        this.typeReact = TypeReact.valueOf(typeReact);
+        this.typeReact = newTypeReact;
+        this.sender = user;
+    }
+
+    public void updateStatus(Boolean status) {
+        this.status = status;
+        this.updateDate();
     }
 
     // This method return: (This should be used in ReactService)
@@ -93,6 +99,11 @@ public class React extends BaseEntity {
     public void removePost(Post post) {
         this.posts.remove(post);
         post.getReacts().remove(this);
+    }
+
+    public void updateReaction(TypeReact newTypeReact) {
+        this.typeReact = newTypeReact;
+        this.updateDate();
     }
 }
 

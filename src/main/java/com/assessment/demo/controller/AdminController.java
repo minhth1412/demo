@@ -58,9 +58,9 @@ public class AdminController extends BaseController {
                 .orElse(null);
         // Check if token is valid, include is expired or not.
         if (token == null)
-            return "Invalid token";
+            return "Authentication failed. JWT not found in the request header.";
         if (user == null)
-            return "User is not existed!";
+            return "Authentication failed. Username not found in the JWT claims.";
         if (!Objects.equals(user.getRole().getRoleName(), roleName))
             return "You do not have permission to enter this path!";
         if (!user.getIsOnline())

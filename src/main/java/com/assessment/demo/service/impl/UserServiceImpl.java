@@ -84,7 +84,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UsualResponse getNotify(User user) {
         try {
-            List<Notify> notifications = notifyRepository.getByUser(user);return UsualResponse.success("Notification of current user:", notifications);
+            List<Notify> notifications = notifyRepository.getByUser(user);
+            return UsualResponse.success("Notification of current user:", notifications);
         } catch (Exception e) {
             log.info(e.getMessage());
             return UsualResponse.error(HttpStatus.INTERNAL_SERVER_ERROR, "Error when getting your notifications");

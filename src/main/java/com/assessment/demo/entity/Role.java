@@ -10,10 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Map;
 import java.util.Set;
 
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = "users")
+@Slf4j
 @Data
 @Entity
-@Slf4j
 @Table(name = "Role")
 public class Role extends BaseEntity {
 
@@ -27,6 +27,7 @@ public class Role extends BaseEntity {
     @Column(name = "roleName", nullable = false, unique = true)
     private String roleName;
 
+    @Transient
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<User> users;
 

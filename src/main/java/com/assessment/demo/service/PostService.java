@@ -2,7 +2,7 @@ package com.assessment.demo.service;
 
 
 import com.assessment.demo.dto.request.PostRequest;
-import com.assessment.demo.dto.request.ReactRequest;
+import com.assessment.demo.dto.request.StringRequest;
 import com.assessment.demo.dto.response.general.UsualResponse;
 import com.assessment.demo.entity.Post;
 import com.assessment.demo.entity.User;
@@ -27,9 +27,9 @@ public interface PostService {
 
     public UsualResponse getPostByPostId(UUID postId);
 
-    UsualResponse addReactionToAPost(User user, UUID postId, ReactRequest reactRequest);
+    UsualResponse addReactionToAPost(User user, UUID postId, StringRequest stringRequest);
 
-    UsualResponse addComment(User user, UUID postId, Map<String, String> commentRequest);
+    UsualResponse addComment(User user, UUID postId, StringRequest commentRequest);
 
 //    UsualResponse sharePost(User user, UUID postId, PostRequest request);
 }

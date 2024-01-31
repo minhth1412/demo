@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReactRequest {
-    private String reactionType;
+public class StringRequest {
+    private String string;
 }
